@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Account — ROB CHEAT</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{color-scheme:dark;--bg:#08060d;--panel:#100d19;--line:#30233d;--txt:#f7f1ff;--muted:#a99db8;--purple:#e83cff;--pink:#ff4fb8}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(ellipse at 50% -15%,#32113d 0%,#08060d 55%);color:var(--txt);font-family:Inter,Arial,sans-serif;display:grid;place-items:center;padding:24px}
+a{color:#e8aaff;text-decoration:none}.wrap{width:min(460px,100%)}.brand{font:700 27px Oswald;letter-spacing:1.5px;text-align:center;margin-bottom:28px}.brand span{background:linear-gradient(100deg,#e83cff,#ff4fb8);-webkit-background-clip:text;color:transparent}
+.card{border:1px solid #392747;border-radius:15px;background:linear-gradient(145deg,#15101e,#0d0a13);padding:32px;box-shadow:0 24px 80px #0008}.kicker{text-align:center;color:#d9b9f4;font-size:10px;letter-spacing:4px;font-weight:800}.title{text-align:center;font:600 42px Oswald;margin:12px 0 8px}.desc{text-align:center;color:var(--muted);font-size:13px;line-height:1.6;margin:0 0 26px}
+.tabs{display:grid;grid-template-columns:1fr 1fr;background:#08060d;border:1px solid #30233d;padding:4px;border-radius:8px;margin-bottom:22px}.tabs button{background:none;border:0;color:#a99db8;padding:10px;border-radius:5px;font-weight:700;font-size:12px;cursor:pointer}.tabs button.active{background:linear-gradient(110deg,#d52cff,#f34abf);color:white}
+label{display:block;font-size:12px;color:#c5b8d2;margin:15px 0 7px}input{width:100%;padding:13px 14px;background:#08060d;border:1px solid #392747;border-radius:7px;color:white;font:14px Inter;outline:none}input:focus{border-color:#b66cff;box-shadow:0 0 0 3px #b66cff18}
+.submit{width:100%;margin-top:22px;border:0;border-radius:7px;padding:15px;background:linear-gradient(110deg,#d52cff,#f34abf 58%,#a65cff);color:white;font:700 14px Oswald;letter-spacing:1px;cursor:pointer}.submit:disabled{opacity:.6;cursor:wait}.below{text-align:center;color:var(--muted);font-size:12px;margin:18px 0 0}.below button{background:none;border:0;color:#e8aaff;cursor:pointer;font:inherit}.message{display:none;margin:16px 0 0;padding:12px;border-radius:7px;font-size:12px;line-height:1.6}.message.show{display:block}.message.ok{background:#12351f;color:#a6f0bb;border:1px solid #27683d}.message.err{background:#35151e;color:#ffb6c8;border:1px solid #6b263d}.back{text-align:center;margin-top:22px;font-size:12px;color:#9585a5}
+</style></head><body><div class="wrap">
+<a href="index.html" class="brand">ROB <span>CHEAT</span></a>
+<div class="card"><div class="kicker">MEMBER ACCESS</div><h1 class="title" id="title">Create account</h1><p class="desc" id="desc">Create your ROB CHEAT account to manage your access.</p>
+<div class="tabs"><button id="signupTab" class="active" onclick="mode('signup')">REGISTER</button><button id="loginTab" onclick="mode('login')">SIGN IN</button></div>
+<form id="authForm">
+<div id="nameField"><label for="displayName">Username</label><input id="displayName" autocomplete="nickname" minlength="3" maxlength="24" placeholder="Your username" required></div>
+<label for="email">Email address</label><input id="email" type="email" autocomplete="email" placeholder="you@example.com" required>
+<label for="password">Password</label><input id="password" type="password" autocomplete="new-password" minlength="8" placeholder="At least 8 characters" required>
+<div id="confirmField"><label for="confirm">Confirm password</label><input id="confirm" type="password" autocomplete="new-password" minlength="8" placeholder="Repeat your password" required></div>
+<button class="submit" id="submit" type="submit">CREATE ACCOUNT</button>
+</form><div id="message" class="message"></div>
+<p class="below" id="below">Already registered? <button onclick="mode('login')">Sign in</button></p>
+<p class="below" id="forgot"><button onclick="mode('reset')">Forgot password?</button></p>
+</div><div class="back"><a href="index.html">← Back to ROB CHEAT</a></div></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL='https://rzbvtzeqrcfutfafaamm.supabase.co';
+const SUPABASE_KEY='sb_publishable_C1Mv75fwRb3bA9gx6JqN7w_2c2CyJvF';
+const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+let currentMode='signup';
+function mode(m){currentMode=m;const signup=m==='signup',login=m==='login',reset=m==='reset';
+document.getElementById('title').textContent=signup?'Create account':login?'Welcome back':'Reset password';
+document.getElementById('desc').textContent=signup?'Create your ROB CHEAT account to manage your access.':login?'Sign in to access your member account.':'We will email you a password reset link.';
+document.getElementById('nameField').style.display=signup?'block':'none';document.getElementById('confirmField').style.display=signup?'block':'none';
+document.getElementById('password').style.display=reset?'none':'block';document.querySelector('label[for=password]').style.display=reset?'none':'block';
+document.getElementById('confirm').required=signup;document.getElementById('displayName').required=signup;document.getElementById('password').required=!reset;
+document.getElementById('submit').textContent=signup?'CREATE ACCOUNT':login?'SIGN IN':'SEND RESET LINK';
+document.getElementById('signupTab').classList.toggle('active',signup);document.getElementById('loginTab').classList.toggle('active',login);
+document.getElementById('below').style.display=reset?'none':'block';document.getElementById('forgot').style.display=login?'block':'none';showMsg('');}
+function showMsg(t,type='err'){const e=document.getElementById('message');e.textContent=t;e.className='message'+(t?' show '+type:'');}
+document.getElementById('authForm').addEventListener('submit',async e=>{e.preventDefault();const btn=document.getElementById('submit');btn.disabled=true;showMsg('');
+const email=document.getElementById('email').value.trim(),password=document.getElementById('password').value;
+try{let result;
+if(currentMode==='signup'){const name=document.getElementById('displayName').value.trim();if(password!==document.getElementById('confirm').value)throw Error('Passwords do not match.');
+result=await sb.auth.signUp({email,password,options:{data:{display_name:name,username:name},emailRedirectTo:location.origin+location.pathname.replace(/[^/]*$/,'account.html')}});
+if(result.error)throw result.error;showMsg(result.data.session?'Account created. You are signed in.':'Account created. Check your email to confirm your address, then sign in.','ok');if(result.data.session)setTimeout(()=>location.href='dashboard.html',900);
+}else if(currentMode==='login'){result=await sb.auth.signInWithPassword({email,password});if(result.error)throw result.error;showMsg('Signed in. Opening your account…','ok');setTimeout(()=>location.href='dashboard.html',700);
+}else{result=await sb.auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname.replace(/[^/]*$/,'account.html')+'?reset=1'});if(result.error)throw result.error;showMsg('Password reset email sent. Check your inbox.','ok');}
+}catch(err){showMsg(err.message||'Something went wrong. Please try again.');}finally{btn.disabled=false;}});
+if(new URLSearchParams(location.search).get('reset')==='1'){mode('reset');showMsg('Enter your email above to request a new reset link.','ok');}
+(async()=>{const {data:{session}}=await sb.auth.getSession();if(session){document.getElementById('below').innerHTML='Already signed in? <a href="dashboard.html">Open account dashboard ↗</a>';}})();
+</script></body></html>
