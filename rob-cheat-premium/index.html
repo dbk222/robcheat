@@ -75,8 +75,21 @@ footer{background:#08060d;color:#71627e}
 </main><footer id="admin"><span>© 2026 ROB CHEAT. All rights reserved.</span><span style="display:flex;gap:16px;flex-wrap:wrap"><a href="faq.html">FAQ</a><a href="contact.html">Contact / Support</a><a href="terms.html">Terms</a><a href="privacy.html">Privacy</a><a href="admin.html">Admin preview</a><span>ROB RUN · COMMUNITY</span></span></footer>
 <div class="modal" id="modal" onclick="if(event.target===this)closeModal()"><div class="dialog"><button class="x" onclick="closeModal()">×</button><h2 id="mt">Checkout</h2><p id="mp"></p><div id="mb"></div></div></div><div class="toast" id="toast"></div>
 <script>
-function checkout(n,p,t){document.getElementById('mt').textContent=n+' pass';document.getElementById('mp').textContent=p+' · '+t+' — Checkout is a UI preview until Stripe is configured.';document.getElementById('mb').innerHTML='<label>Email address</label><input id="email" type="email" placeholder="you@example.com"><button class="btn" onclick="demoPay()">CONTINUE TO SECURE CHECKOUT ↗</button><p>Demo only: no payment is processed.</p>';document.getElementById('modal').classList.add('open')}
-function adminModal(){document.getElementById('mt').textContent='Admin dashboard';document.getElementById('mp').textContent='Administrative access is not connected in this static preview.';document.getElementById('mb').innerHTML='<label>Admin email</label><input placeholder="admin@example.com"><label>Password</label><input type="password" placeholder="••••••••"><button class="btn" onclick="toast(\'Connect Supabase Auth to enable admin sign-in.\')">SIGN IN</button>';document.getElementById('modal').classList.add('open')}
+async function checkout(n,p,t){
+ const plans={Daily:"day",Weekly:"week",Monthly:"month",Lifetime:"lifetime"};
+ const plan=plans[n];if(!plan)return toast("Unknown plan.");
+ const {data:{session},error}=await sb.auth.getSession();
+ if(error||!session){location.href="account.html?next=checkout&plan="+encodeURIComponent(plan);return}
+ const buttons=[...document.querySelectorAll("#plans button")];buttons.forEach(b=>b.disabled=true);
+ toast("Connecting securely to Stripe…");
+ try{
+  const response=await fetch("https://rzbvtzeqrcfutfafaamm.supabase.co/functions/v1/create-checkout",{method:"POST",headers:{ "Content-Type":"application/json","apikey":"sb_publishable_C1Mv75fwRb3bA9gx6JqN7w_2c2CyJvF","Authorization":"Bearer "+session.access_token},body:JSON.stringify({plan})});
+  const data=await response.json();
+  if(!response.ok||!data.url)throw new Error(data.error||data.message||"Checkout could not be created.");
+  location.href=data.url;
+ }catch(err){toast(err.message||"Checkout connection failed.");buttons.forEach(b=>b.disabled=false)}
+}
+const sb=supabase.createClient("https://rzbvtzeqrcfutfafaamm.supabase.co","sb_publishable_C1Mv75fwRb3bA9gx6JqN7w_2c2CyJvF");function adminModal(){document.getElementById('mt').textContent='Admin dashboard';document.getElementById('mp').textContent='Administrative access is not connected in this static preview.';document.getElementById('mb').innerHTML='<label>Admin email</label><input placeholder="admin@example.com"><label>Password</label><input type="password" placeholder="••••••••"><button class="btn" onclick="toast(\'Connect Supabase Auth to enable admin sign-in.\')">SIGN IN</button>';document.getElementById('modal').classList.add('open')}
 function closeModal(){document.getElementById('modal').classList.remove('open')}
 function demoPay(){let e=document.getElementById('email').value;if(!e.includes('@'))return toast('Enter a valid email address.');closeModal();toast('Preview only — Stripe Checkout is not connected.')}
 function toast(s){let t=document.getElementById('toast');t.textContent=s;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3200)}
