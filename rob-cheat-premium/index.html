@@ -74,6 +74,7 @@ footer{background:#08060d;color:#71627e}
 <section class="cta-section" id="community"><div class="container"><div class="section-kicker">YOUR NEXT MOVE</div><h2>Ready to <span class="gradient-text">make it yours?</span></h2><p>Pick your access option and step into the experience.</p><a class="btn" href="#plans">VIEW PLANS ↗</a></div></section>
 </main><footer id="admin"><span>© 2026 ROB CHEAT. All rights reserved.</span><span style="display:flex;gap:16px;flex-wrap:wrap"><a href="faq.html">FAQ</a><a href="contact.html">Contact / Support</a><a href="terms.html">Terms</a><a href="privacy.html">Privacy</a><a href="admin.html">Admin preview</a><span>ROB RUN · COMMUNITY</span></span></footer>
 <div class="modal" id="modal" onclick="if(event.target===this)closeModal()"><div class="dialog"><button class="x" onclick="closeModal()">×</button><h2 id="mt">Checkout</h2><p id="mp"></p><div id="mb"></div></div></div><div class="toast" id="toast"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 async function checkout(n,p,t){
  const plans={Daily:"day",Weekly:"week",Monthly:"month",Lifetime:"lifetime"};
