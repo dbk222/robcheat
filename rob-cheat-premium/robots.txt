@@ -1,7 +1,4 @@
 User-agent: *
 Allow: /
-Disallow: /account.html
-Disallow: /dashboard.html
-Disallow: /admin.html
 
 Sitemap: https://www.robcheat.fun/sitemap.xml
