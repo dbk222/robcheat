@@ -244,3 +244,6 @@ document.getElementById('cookieAccept').addEventListener('click',()=>choose('acc
 document.getElementById('cookieDecline').addEventListener('click',()=>choose('declined'));
 })();
 </script></body></html>
+/* Diagnostic visibility override: force the UI image into a known visible desktop position */
+@media(min-width:701px){.hero-ui-image{position:absolute!important;right:2%!important;top:50%!important;transform:translateY(-50%)!important;width:min(48vw,850px)!important;max-width:none!important;z-index:20!important}.hero-ui-image img{width:100%!important;height:auto!important;max-height:none!important}}
+@media(max-width:700px){.hero-ui-image{position:relative!important;right:auto!important;top:auto!important;transform:none!important;width:100%!important}}
