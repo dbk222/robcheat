@@ -165,7 +165,22 @@ footer{background:#08060d;color:#71627e}
  ]
 }
 </script>
-</head><body>
+<style>
+.delivery{padding:80px 0;border-top:1px solid #392747;background:radial-gradient(ellipse at 50% 0,#26102e,#08060d 65%)}
+.delivery-card{max-width:850px;margin:auto;padding:clamp(25px,5vw,55px);border:1px solid #633475;border-radius:16px;background:linear-gradient(145deg,#171020,#0c0912);box-shadow:0 20px 70px #0006;text-align:center}
+.delivery-kicker{font-size:10px;letter-spacing:4px;color:#d9b9f4;font-weight:800;margin-bottom:18px}
+.delivery h2{font-size:clamp(40px,6vw,68px);line-height:1.05}.delivery-card>p{max-width:650px;margin:20px auto;color:#b9adc7;line-height:1.75;font-size:14px}
+.delivery-steps{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:30px 0;text-align:left}
+.delivery-steps>div{border:1px solid #392747;border-radius:9px;padding:16px;background:#09070e}
+.delivery-steps b{display:block;color:#e83cff;font:600 23px Oswald;margin-bottom:12px}
+.delivery-steps strong{display:block;font-size:12px;margin-bottom:7px}
+.delivery-steps small{color:#a99db8;font-size:11px;line-height:1.5}
+.delivery-note{font-size:11px!important;margin-top:15px!important}
+@media(max-width:620px){.delivery{padding:55px 0}.delivery-steps{grid-template-columns:1fr}.delivery-steps>div{display:grid;grid-template-columns:35px 1fr;column-gap:10px}.delivery-steps b{grid-row:span 2;margin:0}}
+.cookie-banner{position:fixed;z-index:120;left:20px;right:20px;bottom:20px;max-width:980px;margin:auto;padding:18px 20px;border:1px solid #513163;border-radius:12px;background:rgba(13,9,19,.96);backdrop-filter:blur(18px);box-shadow:0 18px 70px #0009;display:flex;align-items:center;justify-content:space-between;gap:20px}
+.cookie-copy strong{display:block;font-size:13px;margin-bottom:6px}.cookie-copy p{margin:0;color:#b5a8c2;font-size:12px;line-height:1.55}.cookie-actions{display:flex;gap:9px;flex-shrink:0}.cookie-actions button{padding:10px 15px;border-radius:6px;font:700 11px Oswald;letter-spacing:.5px;cursor:pointer}.cookie-accept{border:0;background:linear-gradient(110deg,#d52cff,#f34abf);color:white}.cookie-decline{border:1px solid #493253;background:transparent;color:#d9c8e8}
+@media(max-width:650px){.cookie-banner{left:10px;right:10px;bottom:10px;display:block;padding:16px}.cookie-actions{margin-top:13px}.cookie-actions button{flex:1}}
+</style></head><body>
 <header><a class="brand" href="#home">ROB <span>CHEAT</span></a><nav><a href="#features">FEATURES</a><a href="#plans">PLANS</a><a href="faq.html">FAQ</a><a href="https://discord.gg/dYbMpnN2pG" target="_blank" rel="noopener noreferrer">DISCORD</a></nav><div class="navright"><a class="outline" href="account.html">ACCOUNT</a><a class="mini" href="#plans">GET LICENSE</a></div></header>
 <main>
 <section class="hero" id="home"><video class="hero-video" autoplay muted loop playsinline preload="metadata" aria-hidden="true"><source src="assets/gameplay.mp4" type="video/mp4"></video><div class="hero-video-shade" aria-hidden="true"></div><div class="hero-bg" aria-hidden="true"></div><div class="hero-orb orb-one"></div><div class="hero-orb orb-two"></div><div class="hero-grid" aria-hidden="true"></div><div class="container"><div class="hero-content"><div class="eyebrow"><span class="live-dot"></span> ROB RUN <span class="eyebrow-sep">/</span> PREMIUM ACCESS</div><h1>OWN THE<br><span>RUN.</span></h1><div class="hero-subtitle">THE NEXT LEVEL OF <span>ROB RUN</span></div><p class="hero-copy">A clean, configurable ROB RUN experience. Explore the toolkit, choose your access period, and manage your license from one account.</p><div class="actions"><a class="btn" href="#plans">EXPLORE PLANS</a><a class="watch" href="account.html"><span>CREATE ACCOUNT ↗</span></a></div></div></div><div class="scroll"><b></b><b></b><b></b></div></section>
@@ -187,7 +202,7 @@ footer{background:#08060d;color:#71627e}
 <article class="feature"><div class="icon">◉</div><div><h3>Radar</h3><p>A compact radar view provides an additional spatial overview without taking over your screen.</p></div></article>
 <article class="feature"><div class="icon">◐</div><div><h3>Custom Colors</hh3><p>Personalize overlay colors to match your preferences and maintain contrast across different scenes.</p></div></article>
 </div></div></section>
-<section class="section seo-intro" id="about-rob-run"><div class="container"><div class="section-head"><div class="section-kicker">ROB CHEAT · ROB RUN</div><h2>ROB RUN <span class="gradient-text">premium access.</span></h2><p>A configurable overlay toolkit with ESP, radar, aim assist and personalized filters</p></div><details class="seo-copy content-details"><summary>About ROB RUN &amp; its features</summary><div class="content-details-body"><p><strong>ROB CHEAT</strong> is the home of ROB RUN, offering a streamlined experience to explore access options, create an account and manage a license through a configurable interface</p><p>Choose from Daily, Weekly, Monthly or Lifetime access, depending on the option that suits you. Plan duration and pricing are displayed on the <a href="#plans">plans section</a>; review the details before completing checkout.</p><p>Need help with an account, checkout or license? Visit our <a href="faq.html">ROB RUN FAQ</a>, contact <a href="contact.html">support</a>, or join the <a href="https://discord.gg/dYbMpnN2pG" target="_blank" rel="noopener noreferrer">ROB CHEAT Discord community</a>.</p></div></details></div></div></section>
+
 <section class="cta-section" id="community"><div class="container"><div class="section-kicker">YOUR NEXT MOVE</div><h2>Ready to <span class="gradient-text">make it yours?</span></h2><p>Pick your access option and step into the experience.</p><div class="actions" style="justify-content:center"><a class="btn" href="#plans">VIEW PLANS</a><a class="btn" href="https://discord.gg/dYbMpnN2pG" target="_blank" rel="noopener noreferrer">JOIN OUR DISCORD</a></div></div></section>
 </main><footer id="admin"><span>© 2026 ROB CHEAT. All rights reserved.</span><span style="display:flex;gap:16px;flex-wrap:wrap"><a href="faq.html">FAQ</a><a href="contact.html">Contact / Support</a><a href="terms.html">Terms</a><a href="privacy.html">Privacy</a><a href="https://discord.gg/dYbMpnN2pG" target="_blank" rel="noopener noreferrer">Discord</a><span>ROB RUN · COMMUNITY</span></span></footer>
 <div class="modal" id="modal" onclick="if(event.target===this)closeModal()"><div class="dialog"><button class="x" onclick="closeModal()">×</button><h2 id="mt">Checkout</h2><p id="mp"></p><div id="mb"></div></div></div><div class="toast" id="toast"></div>
@@ -211,4 +226,10 @@ const sb=supabase.createClient("https://rzbvtzeqrcfutfafaamm.supabase.co","sb_pu
 function closeModal(){document.getElementById('modal').classList.remove('open')}
 function demoPay(){let e=document.getElementById('email').value;if(!e.includes('@'))return toast('Enter a valid email address.');closeModal();toast('Preview only — Stripe Checkout is not connected.')}
 function toast(s){let t=document.getElementById('toast');t.textContent=s;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3200)}
+</script><div class="cookie-banner" id="cookieBanner" role="dialog" aria-label="Cookie preferences" hidden><div class="cookie-copy"><strong>Cookie preferences</strong><p>We use essential cookies to keep the website working. You can accept or decline optional analytics cookies. Your choice is saved on this device.</p></div><div class="cookie-actions"><button class="cookie-decline" id="cookieDecline">DECLINE</button><button class="cookie-accept" id="cookieAccept">ACCEPT</button></div></div><script>
+(()=>{const banner=document.getElementById('cookieBanner');if(!localStorage.getItem('rob_cookie_choice'))banner.hidden=false;
+function choose(v){localStorage.setItem('rob_cookie_choice',v);banner.hidden=true;}
+document.getElementById('cookieAccept').addEventListener('click',()=>choose('accepted'));
+document.getElementById('cookieDecline').addEventListener('click',()=>choose('declined'));
+})();
 </script></body></html>
