@@ -231,6 +231,7 @@ const sb=supabase.createClient("https://rzbvtzeqrcfutfafaamm.supabase.co","sb_pu
 function closeModal(){document.getElementById('modal').classList.remove('open')}
 function demoPay(){let e=document.getElementById('email').value;if(!e.includes('@'))return toast('Enter a valid email address.');closeModal();toast('Preview only — Stripe Checkout is not connected.')}
 function toast(s){let t=document.getElementById('toast');t.textContent=s;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3200)}
+(()=>{const plan=new URLSearchParams(location.search).get('checkout_plan');const names={day:'Daily',week:'Weekly',month:'Monthly',lifetime:'Lifetime'};if(plan&&names[plan]){history.replaceState(null,'',location.pathname+'#plans');setTimeout(()=>checkout(names[plan]),450)}})();
 </script><div class="cookie-banner" id="cookieBanner" role="dialog" aria-label="Cookie preferences" hidden><div class="cookie-copy"><strong>Cookie preferences</strong><p>We use essential cookies to keep the website working. You can accept or decline optional analytics cookies. Your choice is saved on this device.</p></div><div class="cookie-actions"><button class="cookie-decline" id="cookieDecline">DECLINE</button><button class="cookie-accept" id="cookieAccept">ACCEPT</button></div></div><script>
 (()=>{const banner=document.getElementById('cookieBanner');if(!localStorage.getItem('rob_cookie_choice'))banner.hidden=false;
 function choose(v){localStorage.setItem('rob_cookie_choice',v);banner.hidden=true;}
