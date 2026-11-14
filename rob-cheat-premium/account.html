@@ -8,7 +8,7 @@
 a{color:#e8aaff;text-decoration:none}.wrap{width:min(460px,100%)}.brand{font:700 27px Oswald;letter-spacing:1.5px;text-align:center;margin-bottom:28px}.brand span{background:linear-gradient(100deg,#e83cff,#ff4fb8);-webkit-background-clip:text;color:transparent}
 .card{border:1px solid #392747;border-radius:15px;background:linear-gradient(145deg,#15101e,#0d0a13);padding:32px;box-shadow:0 24px 80px #0008}.kicker{text-align:center;color:#d9b9f4;font-size:10px;letter-spacing:4px;font-weight:800}.title{text-align:center;font:600 42px Oswald;margin:12px 0 8px}.desc{text-align:center;color:var(--muted);font-size:13px;line-height:1.6;margin:0 0 26px}
 .tabs{display:grid;grid-template-columns:1fr 1fr;background:#08060d;border:1px solid #30233d;padding:4px;border-radius:8px;margin-bottom:22px}.tabs button{background:none;border:0;color:#a99db8;padding:10px;border-radius:5px;font-weight:700;font-size:12px;cursor:pointer}.tabs button.active{background:linear-gradient(110deg,#d52cff,#f34abf);color:white}
-label{display:block;font-size:12px;color:#c5b8d2;margin:15px 0 7px}input{width:100%;padding:13px 14px;background:#08060d;border:1px solid #392747;border-radius:7px;color:white;font:14px Inter;outline:none}input:focus{border-color:#b66cff;box-shadow:0 0 0 3px #b66cff18}
+label{display:block;font-size:12px;color:#c5b8d2;margin:15px 0 7px}input{width:100%;padding:13px 14px;background:#08060d;border:1px solid #392747;border-radius:7px;color:white;font:14px Inter;outline:none}input:focus{border-color:#b66cff;box-shadow:0 0 0 3px #b66cff18}input::placeholder{color:#675a73}.field{position:relative}.field input{padding-right:76px}.toggle-pass{position:absolute;right:9px;top:50%;transform:translateY(-50%);background:#1a1222;border:1px solid #392747;color:#cdb8df;border-radius:5px;padding:6px 9px;font:600 10px Inter;cursor:pointer}.submit{transition:filter .18s,transform .18s}.submit:hover{filter:brightness(1.12);transform:translateY(-1px)}.tabs button:focus-visible,.below button:focus-visible,.toggle-pass:focus-visible,.submit:focus-visible{outline:2px solid #e8aaff;outline-offset:3px}.card{backdrop-filter:blur(14px)}
 .submit{width:100%;margin-top:22px;border:0;border-radius:7px;padding:15px;background:linear-gradient(110deg,#d52cff,#f34abf 58%,#a65cff);color:white;font:700 14px Oswald;letter-spacing:1px;cursor:pointer}.submit:disabled{opacity:.6;cursor:wait}.below{text-align:center;color:var(--muted);font-size:12px;margin:18px 0 0}.below button{background:none;border:0;color:#e8aaff;cursor:pointer;font:inherit}.message{display:none;margin:16px 0 0;padding:12px;border-radius:7px;font-size:12px;line-height:1.6}.message.show{display:block}.message.ok{background:#12351f;color:#a6f0bb;border:1px solid #27683d}.message.err{background:#35151e;color:#ffb6c8;border:1px solid #6b263d}.back{text-align:center;margin-top:22px;font-size:12px;color:#9585a5}
 </style></head><body><div class="wrap">
 <a href="index.html" class="brand">ROB <span>CHEAT</span></a>
@@ -17,8 +17,8 @@ label{display:block;font-size:12px;color:#c5b8d2;margin:15px 0 7px}input{width:1
 <form id="authForm">
 <div id="nameField"><label for="displayName">Username</label><input id="displayName" autocomplete="nickname" minlength="3" maxlength="24" placeholder="Your username" required></div>
 <label for="email">Email address</label><input id="email" type="email" autocomplete="email" placeholder="you@example.com" required>
-<label for="password">Password</label><input id="password" type="password" autocomplete="new-password" minlength="8" placeholder="At least 8 characters" required>
-<div id="confirmField"><label for="confirm">Confirm password</label><input id="confirm" type="password" autocomplete="new-password" minlength="8" placeholder="Repeat your password" required></div>
+<label for="password">Password</label><div class="field"><input id="password" type="password" autocomplete="new-password" minlength="8" placeholder="At least 8 characters" required><button class="toggle-pass" type="button" onclick="togglePassword('password',this)" aria-label="Show password">SHOW</button></div>
+<div id="confirmField"><label for="confirm">Confirm password</label><div class="field"><input id="confirm" type="password" autocomplete="new-password" minlength="8" placeholder="Repeat your password" required><button class="toggle-pass" type="button" onclick="togglePassword('confirm',this)" aria-label="Show confirmation password">SHOW</button></div></div>
 <button class="submit" id="submit" type="submit">CREATE ACCOUNT</button>
 </form><div id="message" class="message"></div>
 <p class="below" id="below">Already registered? <button onclick="mode('login')">Sign in</button></p>
@@ -30,11 +30,11 @@ const SUPABASE_URL='https://rzbvtzeqrcfutfafaamm.supabase.co';
 const SUPABASE_KEY='sb_publishable_C1Mv75fwRb3bA9gx6JqN7w_2c2CyJvF';
 const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 let currentMode='signup';
-function mode(m){currentMode=m;const signup=m==='signup',login=m==='login',reset=m==='reset';
+function togglePassword(id,button){const input=document.getElementById(id),visible=input.type==='password';input.type=visible?'text':'password';button.textContent=visible?'HIDE':'SHOW';button.setAttribute('aria-label',visible?'Hide password':'Show password');}\nfunction mode(m){currentMode=m;const signup=m==='signup',login=m==='login',reset=m==='reset';
 document.getElementById('title').textContent=signup?'Create account':login?'Welcome back':'Reset password';
 document.getElementById('desc').textContent=signup?'Create your ROB CHEAT account to manage your access.':login?'Sign in to access your member account.':'We will email you a password reset link.';
 document.getElementById('nameField').style.display=signup?'block':'none';document.getElementById('confirmField').style.display=signup?'block':'none';
-document.getElementById('password').style.display=reset?'none':'block';document.querySelector('label[for=password]').style.display=reset?'none':'block';
+document.getElementById('password').closest('.field').style.display=reset?'none':'block';document.querySelector('label[for=password]').style.display=reset?'none':'block';
 document.getElementById('confirm').required=signup;document.getElementById('displayName').required=signup;document.getElementById('password').required=!reset;
 document.getElementById('submit').textContent=signup?'CREATE ACCOUNT':login?'SIGN IN':'SEND RESET LINK';
 document.getElementById('signupTab').classList.toggle('active',signup);document.getElementById('loginTab').classList.toggle('active',login);
