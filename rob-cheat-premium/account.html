@@ -90,7 +90,7 @@ $('authForm').addEventListener('submit',async e=>{
       if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))throw Error(msg('badEmail'));
       if(password.length<8)throw Error(msg('shortPassword'));
       if(password!==$('confirm').value)throw Error(msg('mismatch'));
-      result=await sb.auth.signUp({email,password,options:{data:{display_name:name,username:name},emailRedirectTo:location.origin+location.pathname.replace(/[^/]*$/,'account.html')+'?confirmed=1'});
+      result=await sb.auth.signUp({email,password,options:{data:{display_name:name,username:name},emailRedirectTo:location.origin+location.pathname.replace(/[^/]*$/,'account.html')}});
       if(result.error){
         const low=(result.error.message||'').toLowerCase();
         if(low.includes('profiles_display_name_lower_unique')||low.includes('username is taken')||low.includes('duplicate key'))throw Error(language==='ro'?'Numele de utilizator este deja folosit. Alege altul.':'Username is taken. Please choose another one.');
