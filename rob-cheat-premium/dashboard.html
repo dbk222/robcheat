@@ -70,23 +70,26 @@ document.getElementById('downloadPackage').addEventListener('click', async () =>
       body: '{}',
       cache: 'no-store'
     });
-    let result;
-    try { result = await response.json(); }
-    catch { throw new Error('The download service returned an invalid response.'); }
-    if (!response.ok) throw new Error(result.error || 'Your account is not authorised to download this release.');
-    if (!result.signedUrl) throw new Error('The download link could not be created.');
-
-    const downloadUrl = new URL(result.signedUrl, 'https://rzbvtzeqrcfutfafaamm.supabase.co');
-    if (
-      downloadUrl.origin !== 'https://rzbvtzeqrcfutfafaamm.supabase.co' ||
-      !downloadUrl.pathname.startsWith('/storage/v1/object/sign/robcheat-releases/')
-    ) {
-      throw new Error('The download service returned an unexpected link.');
+    if (!response.ok) {
+      const result = await response.json().catch(() => ({}));
+      throw new Error(result.error || 'Your account is not authorised to download this release.');
     }
 
-    state.textContent = 'Licence verified. Your download is starting; the temporary link expires in 2 minutes.';
+    const packageBlob = await response.blob();
+    if (!packageBlob.size) throw new Error('The release file was empty.');
+
+    const localUrl = URL.createObjectURL(packageBlob);
+    const link = document.createElement('a');
+    link.href = localUrl;
+    link.download = 'RobCheat.zip';
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(localUrl), 60_000);
+
+    state.textContent = 'Licence verified. Your download is starting.';
     state.style.color = 'var(--good)';
-    window.location.assign(downloadUrl.toString());
   } catch (error) {
     state.textContent = error instanceof Error ? error.message : 'Download failed. Please try again.';
     state.style.color = 'var(--red)';
