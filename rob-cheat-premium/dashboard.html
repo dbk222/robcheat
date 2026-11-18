@@ -24,7 +24,7 @@
 <div class="grid stats"><article class="panel stat"><div class="stat-top">Active licenses <span class="stat-icon"><svg viewBox="0 0 24 24"><path d="M7 14a5 5 0 1 1 3.8 4.9L8 22H5v-3H2v-3l4-4"/></svg></span></div><div class="stat-value" id="activeCount">—</div><div class="stat-foot">Current active licenses</div></article><article class="panel stat"><div class="stat-top">Registered devices <span class="stat-icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8m-4-4v4"/></svg></span></div><div class="stat-value" id="deviceCount">—</div><div class="stat-foot">Registered devices</div></article><article class="panel stat"><div class="stat-top">Account status <span class="stat-icon"><svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg></span></div><div class="stat-value" style="font-size:21px;color:var(--good)">Signed in</div><div class="stat-foot">Authenticated member session</div></article></div>
 <div class="grid overview-lower"><section class="panel"><div class="panel-title"><div><h2>Recent activity</h2><p>Recent account events</p></div><button class="btn" onclick="go('activity')">View all</button></div><div class="activity-list"><div class="empty">Your account events are available in the Activity section.</div></div></section><section class="panel"><div class="panel-title"><div><h2>Quick access</h2><p>Useful account shortcuts</p></div></div><div class="quick-actions"><a class="quick-action" href="#downloads" onclick="go('downloads');return false"><span class="q-icon">↓</span><span><b>Downloads & setup</b><small>Release package and guide</small></span><span class="arrow">↗</span></a><a class="quick-action" href="#licenses" onclick="go('licenses');return false"><span class="q-icon">⌁</span><span><b>Manage licenses</b><small>Review status and device info</small></span><span class="arrow">↗</span></a><a class="quick-action" href="https://discord.gg/dYbMpnN2pG" target="_blank" rel="noopener"><span class="q-icon">↗</span><span><b>Contact support</b><small>Get help with your account</small></span><span class="arrow">↗</span></a></div></section></div></section>
 <section class="page" id="page-licenses"><div class="heading"><div><div class="eyebrow">Your account</div><h1>My <em>licenses.</em></h1><p>Review the status and device allocation for your purchases.</p></div><button class="btn" type="button" onclick="document.getElementById(\'refresh\').click()">↻ Refresh</button></div><section class="panel"><div class="panel-title"><div><h2>License overview</h2><p>Live license records from your account</p></div></div><div id="licenses"><div class="empty">Loading your licenses…</div></div></section></section>
-<section class="page" id="page-downloads"><div class="heading"><div><div class="eyebrow">Release centre</div><h1>Downloads & <em>setup.</em></h1><p>Download your release and contact our team for setup assistance.</p></div></div><div class="notice"><strong>Download not connected yet.</strong> The download button will become available once private storage and licence checks are connected.</div><div class="grid download-layout"><section class="panel download-card"><div class="file-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg></div><div class="file-kicker">Your download</div><h2>ROB CHEAT package</h2><p>Your eligible release will be available here after your account and licence have been verified.</p><div class="file-details"><span>Version: <b>Pending</b></span><span>File: <b>.ZIP</b></span><span>Size: <b>Pending</b></span></div><button class="btn primary download-disabled" disabled>↓ Download package</button><div class="file-state">Package not connected · awaiting approved release file</div></section><section class="panel support-panel"><div class="panel-title"><div><h2>Need help getting started?</h2><p>Our support team can guide you through the next steps.</p></div></div><div class="support-copy"><p>For installation instructions or troubleshooting, open a support ticket in our Discord server. Our team will help you there.</p><a class="btn primary" href="https://discord.gg/dYbMpnN2pG" target="_blank" rel="noopener noreferrer">Open a Discord support ticket ↗</a></div></section></div></section>
+<section class="page" id="page-downloads"><div class="heading"><div><div class="eyebrow">Release centre</div><h1>Downloads & <em>setup.</em></h1><p>Download your release and contact our team for setup assistance.</p></div></div><div class="notice"><strong>Private release access.</strong> Your licence is checked securely each time you request a download. The temporary download link expires after 2 minutes.</div><div class="grid download-layout"><section class="panel download-card"><div class="file-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg></div><div class="file-kicker">Your download</div><h2>ROB CHEAT package</h2><p>Your account must have a valid ROB CHEAT licence. We verify access on the server before creating a temporary download link.</p><div class="file-details"><span>Version: <b>v1.0.0</b></span><span>File: <b>RobCheat.zip</b></span><span>Size: <b>521 KB</b></span></div><button class="btn primary" id="downloadPackage" type="button">↓ Download package</button><div class="file-state" id="downloadState" role="status" aria-live="polite">Private release · licence verification required before download</div></section><section class="panel support-panel"><div class="panel-title"><div><h2>Need help getting started?</h2><p>Our support team can guide you through the next steps.</p></div></div><div class="support-copy"><p>For installation instructions or troubleshooting, open a support ticket in our Discord server. Our team will help you there.</p><a class="btn primary" href="https://discord.gg/dYbMpnN2pG" target="_blank" rel="noopener noreferrer">Open a Discord support ticket ↗</a></div></section></div></section>
 <section class="page" id="page-activity"><div class="heading"><div><div class="eyebrow">Account history</div><h1>Recent <em>activity.</em></h1><p>License and account events associated with your session.</p></div></div><section class="panel"><div id="activity"><div class="empty">Loading your account activity…</div></div></section></section>
 <section class="page" id="page-account"><div class="heading"><div><div class="eyebrow">Profile</div><h1>Account <em>details.</em></h1><p>Your sign-in identity and account preferences.</p></div><a class="btn" href="account.html">Account settings ↗</a></div><div class="grid account-grid"><section class="panel"><div class="panel-title"><h2>Profile information</h2></div><div class="field"><span>Email address</span><b id="email">Loading…</b></div><div class="field"><span>Member since</span><b id="created">Loading…</b></div></section><section class="panel"><div class="panel-title"><h2>Account security</h2></div><div class="field"><span>Password</span><b>Managed through secure sign-in</b></div><div class="field"><span>Session</span><b style="color:var(--good)">Authenticated session</b></div><div class="field"><span>Support</span><b><a class="side-link" href="https://discord.gg/dYbMpnN2pG" target="_blank" rel="noopener">Open support ↗</a></b></div></section></div></section>
 <div class="foot"><span>ROB CHEAT · Member dashboard</span><span>Account and license information</span></div></div></main></div>
@@ -40,12 +40,64 @@ const fmt=d=>d?new Date(d).toLocaleDateString(undefined,{year:'numeric',month:'s
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 async function init(){const r=await sb.auth.getSession();session=r.data.session;if(!session){location.href='account.html?next=dashboard.html';return}user=session.user;const profile=await sb.from('profiles').select('role').eq('id',user.id).maybeSingle();if(profile.data?.role==='admin'){location.href='admin.html';return}document.getElementById('user').textContent=user.user_metadata?.username||user.user_metadata?.display_name||user.email;document.getElementById('email').textContent=user.email;document.getElementById('created').textContent='Joined '+fmt(user.created_at);const paidReturn=new URLSearchParams(location.search).get('checkout')==='success';if(paidReturn){const n=document.getElementById('notice');n.textContent='Payment received — we are provisioning your license. This page will refresh automatically.';n.style.color='#a6f0bb';pollCheckout();}else await load()}
 async function load(){const lic=document.getElementById('licenses'),act=document.getElementById('activity');lic.innerHTML='<div class="empty">Loading…</div>';act.innerHTML='<div class="empty">Loading…</div>';
-const resp=await fetch('https://rzbvtzeqrcfutfafaamm.supabase.co/functions/v1/my-licenses',{headers:{apikey:'sb_publishable_C1Mv75fwRb3bA9gx6JqN7w_2c2CyJvF',Authorization:'Bearer '+session.access_token}});const payload=await resp.json();const ls=payload.licenses;const error=resp.ok?null:(payload.error||'Could not load licenses');
+const resp=await fetch('/api/my-licenses',{headers:{apikey:'sb_publishable_C1Mv75fwRb3bA9gx6JqN7w_2c2CyJvF',Authorization:'Bearer '+session.access_token}});const payload=await resp.json();const ls=payload.licenses;const error=resp.ok?null:(payload.error||'Could not load licenses');
 if(error){lic.innerHTML='<div class="empty">Could not load licenses. '+esc(typeof error==='string'?error:error.message||'Please try again.')+'</div>';document.getElementById('activeCount').textContent='—';}else{const active=(ls||[]).filter(x=>x.status==='active'&&(!x.expires_at||new Date(x.expires_at)>new Date()));document.getElementById('activeCount').textContent=active.length;const ids=(ls||[]).map(x=>x.id);const devices=payload.devices||[];document.getElementById('deviceCount').textContent=devices.filter(x=>!x.revoked_at).length;
 if(!ls?.length)lic.innerHTML='<div class="empty">No licenses assigned yet. Once your purchase is approved, your license will appear here.</div>';else lic.innerHTML=ls.map(x=>'<div class="license"><div class="row"><strong>'+esc(x.product_code||'ROB CHEAT')+' · '+esc(x.plan||'License')+'</strong><span class="pill '+(x.status==='active'?'':'warn')+'">'+esc(x.status)+'</span></div><p class="muted">Key: '+esc(x.license_key||x.key_prefix||'Pending delivery')+' · Expires: '+fmt(x.expires_at)+'</p><div class="muted">Devices: '+devices.filter(d=>d.license_id===x.id&&!d.revoked_at).length+' / '+x.max_devices+'</div></div>').join('')}
 const a=payload.activations||[];if(!a.length)act.innerHTML='<div class="empty">No activation activity yet.</div>';else act.innerHTML=a.map(x=>'<div class="license row"><span>'+esc(x.event)+'</span><span class="muted">'+new Date(x.created_at).toLocaleString()+'</span></div>').join('')}
 async function pollCheckout(attempt=0){await load();const count=Number(document.getElementById('activeCount').textContent||0);const notice=document.getElementById('notice');if(count>0){notice.textContent='Your payment is complete and your license is available below.';notice.style.color='#a6f0bb';return;}if(attempt<5){setTimeout(()=>pollCheckout(attempt+1),3000);return;}notice.textContent='Payment received. License processing may take a little longer — refresh shortly or contact Discord support if it does not appear.';notice.style.color='#ffdb9a';}
-document.getElementById('refresh').onclick=load;document.getElementById('logout').onclick=async()=>{await sb.auth.signOut();location.href='account.html'};sb.auth.onAuthStateChange((event,s)=>{if(event==='SIGNED_OUT')location.href='account.html'});init();
+document.getElementById('refresh').onclick=load;
+document.getElementById('downloadPackage').addEventListener('click', async () => {
+  const button = document.getElementById('downloadPackage');
+  const state = document.getElementById('downloadState');
+  if (!session?.access_token) {
+    location.href = 'account.html?next=dashboard.html';
+    return;
+  }
+
+  button.disabled = true;
+  button.textContent = 'Preparing secure download…';
+  state.textContent = 'Checking your ROB CHEAT licence…';
+  state.style.color = 'var(--muted)';
+
+  try {
+    const response = await fetch('/api/member-download', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + session.access_token,
+        'apikey': 'sb_publishable_C1Mv75fwRb3bA9gx6JqN7w_2c2CyJvF'
+      },
+      body: '{}',
+      cache: 'no-store'
+    });
+    let result;
+    try { result = await response.json(); }
+    catch { throw new Error('The download service returned an invalid response.'); }
+    if (!response.ok) throw new Error(result.error || 'Your account is not authorised to download this release.');
+    if (!result.signedUrl) throw new Error('The download link could not be created.');
+
+    const downloadUrl = new URL(result.signedUrl, 'https://rzbvtzeqrcfutfafaamm.supabase.co');
+    if (
+      downloadUrl.origin !== 'https://rzbvtzeqrcfutfafaamm.supabase.co' ||
+      !downloadUrl.pathname.startsWith('/storage/v1/object/sign/robcheat-releases/')
+    ) {
+      throw new Error('The download service returned an unexpected link.');
+    }
+
+    state.textContent = 'Licence verified. Your download is starting; the temporary link expires in 2 minutes.';
+    state.style.color = 'var(--good)';
+    window.location.assign(downloadUrl.toString());
+  } catch (error) {
+    state.textContent = error instanceof Error ? error.message : 'Download failed. Please try again.';
+    state.style.color = 'var(--red)';
+  } finally {
+    button.disabled = false;
+    button.textContent = '↓ Download package';
+  }
+});
+document.getElementById('logout').onclick=async()=>{await sb.auth.signOut();location.href='account.html'};
+sb.auth.onAuthStateChange((event,s)=>{if(event==='SIGNED_OUT')location.href='account.html'});
+init();
 
 </script>
 </body></html>
