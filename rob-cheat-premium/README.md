@@ -15,7 +15,7 @@ This repository contains the static website in `rob-cheat-premium/`.
 - Supabase Auth is used for member and admin sessions.
 - The homepage starts Stripe Checkout through the `create-checkout` Edge Function.
 - The member dashboard loads account license information through `my-licenses`.
-- The admin area uses `admin-licenses` and `stripe-admin-analytics`.
+- The admin area calls same-origin Vercel routes (`/api/admin-licenses` and `/api/stripe-admin-analytics`), which forward the signed-in user's JWT and publishable key to the Supabase Edge Functions. This avoids requiring preview-hostname CORS entries in Supabase. The Edge Functions continue to enforce JWT and admin-role validation.
 
 ## Release downloads
 Release ZIP delivery is not enabled by these pages. Do not place customer release archives in the public `assets/` directory. Before downloads are enabled, configure private object storage, signed download URLs, verified release metadata and server-side entitlement checks.
