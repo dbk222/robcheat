@@ -12,9 +12,21 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    const body = typeof req.body === "string"
-      ? req.body
-      : JSON.stringify(req.body ?? {});
+    const parsedBody = typeof req.body === "string"
+      ? JSON.parse(req.body || "{}")
+      : (req.body ?? {});
+    const action = parsedBody?.action;
+
+    // Keep the feature-branch preview safe: data can be reviewed, but licence
+    // mutations only become available after the code is merged to production.
+    const readOnlyActions = new Set(["create", "update", "revoke", "reset_hwid"]);
+    if (process.env.VERCEL_ENV === "preview" && readOnlyActions.has(action)) {
+      return res.status(403).json({
+        error: "Licence changes are disabled in the preview environment. Use the production admin panel after this release is approved."
+      });
+    }
+
+    const body = JSON.stringify(parsedBody);
 
     const upstream = await fetch(
       "https://rzbvtzeqrcfutfafaamm.supabase.co/functions/v1/admin-licenses",
