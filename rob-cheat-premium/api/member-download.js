@@ -15,11 +15,10 @@ module.exports = async function handler(req, res) {
     return res.status(401).json({ error: "An authenticated session is required." });
   }
 
-  try {
-    const body = typeof req.body === "string"
-      ? req.body
-      : JSON.stringify(req.body ?? {});
+  res.setHeader("Cache-Control", "no-store, private, max-age=0");
+  res.setHeader("X-Content-Type-Options", "nosniff");
 
+  try {
     const upstream = await fetch(
       "https://rzbvtzeqrcfutfafaamm.supabase.co/functions/v1/member-download",
       {
@@ -29,18 +28,45 @@ module.exports = async function handler(req, res) {
           "apikey": apiKey,
           "Content-Type": "application/json"
         },
-        body
+        body: "{}"
       }
     );
 
-    const responseText = await upstream.text();
-    res.setHeader("Content-Type", upstream.headers.get("content-type") || "application/json");
-    res.setHeader("Cache-Control", "no-store, private");
-    return res.status(upstream.status).send(responseText);
+    const result = await upstream.json().catch(() => null);
+    if (!upstream.ok) {
+      return res.status(upstream.status).json({
+        error: result?.error || "Your account is not authorised to download this release.",
+        code: result?.code
+      });
+    }
+
+    if (!result?.signedUrl) {
+      return res.status(502).json({ error: "The download service did not return a file." });
+    }
+
+    // Keep the short-lived Storage URL server-side; never expose it to the browser.
+    const signedUrl = new URL(result.signedUrl);
+    if (
+      signedUrl.origin !== "https://rzbvtzeqrcfutfafaamm.supabase.co" ||
+      !signedUrl.pathname.startsWith("/storage/v1/object/sign/robcheat-releases/")
+    ) {
+      return res.status(502).json({ error: "The download service returned an unexpected file location." });
+    }
+
+    const fileResponse = await fetch(signedUrl.toString(), { cache: "no-store" });
+    if (!fileResponse.ok) {
+      return res.status(502).json({ error: "The private release file could not be retrieved." });
+    }
+
+    const file = Buffer.from(await fileResponse.arrayBuffer());
+    res.setHeader("Content-Type", "application/zip");
+    res.setHeader("Content-Disposition", 'attachment; filename="RobCheat.zip"');
+    res.setHeader("Content-Length", String(file.length));
+    return res.status(200).send(file);
   } catch (error) {
     return res.status(502).json({
-      error: "Unable to reach the download service.",
-      details: error instanceof Error ? error.message : "Unknown upstream error"
+      error: "Unable to complete the private download.",
+      details: error instanceof Error ? error.message : "Unknown error"
     });
   }
 };
