@@ -1,3 +1,5 @@
+let streamerData=[],streamerOrders=[],splitData=null,financeSettings=null,splitCurrentRange='30';
+const streamerFn='/api/streamer-admin',financeFn='/api/finance-split';
 async function streamerApi(action,body={}){const r=await fetch(streamerFn,{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+session.access_token,"apikey":"sb_publishable_C1Mv75fwRb3bA9gx6JqN7w_2c2CyJvF"},body:JSON.stringify({action,...body})});const d=await r.json();if(!r.ok)throw Error(d.error||"Streamer request failed");return d}
 const streamerMoney=(v,currency="EUR")=>new Intl.NumberFormat("en-IE",{style:"currency",currency:(currency||"EUR").toUpperCase()}).format(Number(v||0));
 const streamerDate=v=>v?new Date(v).toLocaleString():"—";
