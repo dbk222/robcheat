@@ -192,9 +192,10 @@ document.getElementById("withdrawalRows").addEventListener("click",async e=>{
 });
 document.getElementById("splitExport").onclick=()=>{
  if(!splitData)return;
+ const multi=splitCurrency()==="MULTI";
  const rows=[
-  ["Date","Stripe net proceeds","Nemilosu allocation","Poker allocation"],
-  ...(splitData.daily||[]).map(x=>{const p=splitValues(x.net);return [x.date,(Number(x.net||0)/100).toFixed(2),(Number(p.nemilosu||0)/100).toFixed(2),(Number(p.poker||0)/100).toFixed(2)]}),
+  ["Date","Currency","Stripe net proceeds","Nemilosu allocation","Poker allocation"],
+  ...(splitData.daily||[]).map(x=>{const p=splitValues(x.net);return [x.date,splitData.currency||"EUR",multi?"":(Number(x.net||0)/100).toFixed(2),multi?"":(Number(p.nemilosu||0)/100).toFixed(2),multi?"":(Number(p.poker||0)/100).toFixed(2)]}),
   [],
   ["Withdrawal history for selected period"],
   ["Date","Partner","Amount","Currency","Description"],
