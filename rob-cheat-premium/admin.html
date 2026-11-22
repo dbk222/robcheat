@@ -36,7 +36,7 @@ label{display:grid;gap:7px;color:var(--muted);font-size:11px}
 #notice:empty{display:none}
 #stripeFrom,#stripeTo{min-width:150px}
 @media(max-width:700px){.stats,.quick-grid,.form{grid-template-columns:1fr}.row>*{max-width:100%}.tablewrap{margin-inline:-3px}}
-</style><style>#page-profit .stats{grid-template-columns:repeat(4,minmax(0,1fr))}#page-streamers .stats{grid-template-columns:repeat(3,minmax(0,1fr))}#splitSettingsForm .form-grid,#streamerForm .form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}@media(max-width:700px){#page-profit .stats,#page-streamers .stats,#splitSettingsForm .form-grid,#streamerForm .form-grid{grid-template-columns:1fr}}</style></head><body>
+</style><style>#page-profit .stats{grid-template-columns:repeat(4,minmax(0,1fr))}#page-streamers .stats{grid-template-columns:repeat(3,minmax(0,1fr))}#streamerForm .form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}@media(max-width:700px){#page-profit .stats,#page-streamers .stats,#splitSettingsForm .form-grid,#streamerForm .form-grid{grid-template-columns:1fr}}</style></head><body>
 <div class="app"><aside class="sidebar"><a class="brand" href="#overview">ROB <span>CHEAT</span></a><div class="label">Administration</div><nav class="nav" aria-label="Admin navigation">
 <button class="active" data-page="overview"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="5" rx="2"/><rect x="13" y="10" width="8" height="11" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/></svg>Overview</button>
 <button data-page="licenses"><svg viewBox="0 0 24 24"><path d="M7 14a5 5 0 1 1 3.8 4.9L8 22H5v-3H2v-3l4-4"/></svg>Licenses</button>
@@ -72,18 +72,30 @@ label{display:grid;gap:7px;color:var(--muted);font-size:11px}
 </section>
 
 <section class="page" id="page-profit">
-<div class="heading"><div><div class="eyebrow">STRIPE CONNECTED FINANCE</div><h1>Profit <em>split.</em></h1><p>Automatically calculate partner and ROB CHEAT shares from actual Stripe net proceeds.</p></div><button class="btn" id="splitRefresh">↻ Refresh figures</button></div>
-<div class="notice" id="splitNotice">Calculations use Stripe balance transactions after fees, refunds and disputes. This dashboard calculates allocations only; it does not send transfers or payouts.</div>
-<section class="panel"><div class="row"><h2>Split configuration</h2><span class="pill">Saved in Supabase</span></div>
-<form id="splitSettingsForm" style="margin-top:16px"><div class="form-grid">
-<label>Partner / recipient name<input id="splitPartnerName" maxlength="64" required placeholder="Partner name"></label>
-<label>Partner share (%)<input id="splitPartnerPercent" type="number" min="0" max="100" step="0.01" required value="50"></label>
-</div><div class="row" style="margin-top:14px"><span class="notice" style="margin:0">ROB CHEAT share: <strong id="splitCompanyPercent">50%</strong> · The two shares always total 100%.</span><button class="btn primary" type="submit">Save split settings</button></div></form></section>
-<section class="panel"><div class="row"><h2>Stripe period</h2><div class="actions"><button class="btn split-range" data-range="today">Today</button><button class="btn split-range" data-range="7">7D</button><button class="btn split-range" data-range="30">30D</button><button class="btn split-range" data-range="90">90D</button><button class="btn split-range" data-range="all">All time</button></div></div>
-<div class="row" style="gap:10px;align-items:end;margin:14px 0;flex-wrap:wrap"><label>From<input id="splitFrom" type="date"></label><label>To<input id="splitTo" type="date"></label><button class="btn" id="splitApply">Apply period</button><button class="btn" id="splitExport">Export split CSV</button></div>
-<div class="stats"><div class="stat">Stripe gross<strong id="splitGross">—</strong></div><div class="stat">Stripe net<strong id="splitNet">—</strong></div><div class="stat" id="partnerShareLabel">Partner share<strong id="splitPartnerAmount">—</strong></div><div class="stat">ROB CHEAT share<strong id="splitCompanyAmount">—</strong></div></div>
-<div class="tablewrap"><table style="min-width:650px"><thead><tr><th>Date</th><th>Net Stripe proceeds</th><th>Partner allocation</th><th>ROB CHEAT allocation</th></tr></thead><tbody id="splitRows"><tr><td colspan="4">Loading Stripe activity…</td></tr></tbody></table></div>
+<div class="heading"><div><div class="eyebrow">STRIPE CONNECTED FINANCE</div><h1>Profit <em>split.</em></h1><p>Net Stripe proceeds are split equally between Nemilosu and Poker. Each withdrawal reduces only the recipient's balance.</p></div><button class="btn" id="splitRefresh" type="button">↻ Refresh figures</button></div>
+<div class="notice" id="splitNotice">Live net figures include Stripe fees and refunds. Withdrawals are recorded manually and do not trigger bank transfers or Stripe payouts.</div>
+<section class="panel"><div class="row"><h2>Allocation rule</h2><span class="pill">50% / 50%</span></div><p class="notice" style="margin:14px 0 0">The net profit for the selected period is divided equally: 50% Nemilosu and 50% Poker. Withdrawals are assigned to one partner and never deducted from the other partner's allocation.</p></section>
+<section class="panel"><div class="row"><h2>Stripe period</h2><div class="actions"><button class="btn split-range" data-range="today" type="button">Today</button><button class="btn split-range" data-range="7" type="button">7D</button><button class="btn split-range" data-range="30" type="button">30D</button><button class="btn split-range" data-range="90" type="button">90D</button><button class="btn split-range" data-range="all" type="button">All time</button></div></div>
+<div class="row" style="gap:10px;align-items:end;margin:14px 0;flex-wrap:wrap"><label>From<input id="splitFrom" type="date"></label><label>To<input id="splitTo" type="date"></label><button class="btn" id="splitApply" type="button">Apply period</button><button class="btn" id="splitExport" type="button">Export split CSV</button></div>
+<div class="stats">
+<div class="stat">Stripe gross<strong id="splitGross">—</strong></div><div class="stat">Stripe net<strong id="splitNet">—</strong></div>
+<div class="stat">Nemilosu · 50% allocation<strong id="nemilosuShare">—</strong></div><div class="stat">Nemilosu · withdrawn<strong id="nemilosuWithdrawn">—</strong></div><div class="stat">Nemilosu · remaining<strong id="nemilosuRemaining">—</strong></div>
+<div class="stat">Poker · 50% allocation<strong id="pokerShare">—</strong></div><div class="stat">Poker · withdrawn<strong id="pokerWithdrawn">—</strong></div><div class="stat">Poker · remaining<strong id="pokerRemaining">—</strong></div>
+</div>
+<div class="tablewrap"><table style="min-width:720px"><thead><tr><th>Date</th><th>Net Stripe proceeds</th><th>Nemilosu allocation</th><th>Poker allocation</th></tr></thead><tbody id="splitRows"><tr><td colspan="4">Loading Stripe activity…</td></tr></tbody></table></div>
 <p class="notice" id="splitBasis">Split calculated from connected Stripe net proceeds.</p></section>
+<section class="panel"><div class="row"><h2>Record a withdrawal</h2><span class="pill">Manual entry</span></div>
+<form id="withdrawalForm" style="margin-top:16px">
+<div class="form-grid">
+<label>Partner<select id="withdrawalPartner" required><option value="nemilosu">Nemilosu</option><option value="poker">Poker</option></select></label>
+<label>Amount (<span id="withdrawalCurrency">EUR</span>)<input id="withdrawalAmount" type="number" min="0.01" step="0.01" inputmode="decimal" required placeholder="0.00"></label>
+<label>Withdrawal date<input id="withdrawalDate" type="date" required></label>
+<label>Description / note<input id="withdrawalDescription" type="text" maxlength="240" placeholder="Optional note or transfer reference"></label>
+</div>
+<div class="row" style="margin-top:14px;align-items:center"><p class="notice" id="withdrawalCurrencyNote" style="margin:0">Select a single-currency Stripe period to record a withdrawal.</p><button class="btn primary" id="withdrawalSave" type="submit" disabled>Record withdrawal</button></div>
+</form></section>
+<section class="panel"><div class="row"><h2>Withdrawal history</h2><span class="notice" style="margin:0">All recorded withdrawals · balances follow the selected Stripe period</span></div>
+<div class="tablewrap"><table style="min-width:760px"><thead><tr><th>Date</th><th>Partner</th><th>Amount</th><th>Description</th><th>Action</th></tr></thead><tbody id="withdrawalRows"><tr><td colspan="5">Loading withdrawals…</td></tr></tbody></table></div></section>
 </section>
 <section class="page" id="page-streamers">
 <div class="heading"><div><div class="eyebrow">REFERRAL PROGRAM</div><h1>Streamer <em>management.</em></h1><p>Create promo codes and track every paid Stripe checkout attributed to each streamer.</p></div><button class="btn" id="streamerRefresh">↻ Refresh streamers</button></div>
