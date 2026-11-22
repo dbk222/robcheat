@@ -1,4 +1,4 @@
-let streamerData=[],streamerOrders=[],splitData=null,financeSettings=null,splitCurrentRange='30';
+let streamerData=[],streamerOrders=[],splitData=null,financeSettings=null,withdrawalData=[],splitCurrentRange='30';
 const streamerFn='/api/streamer-admin',financeFn='/api/finance-split';
 async function streamerApi(action,body={}){const r=await fetch(streamerFn,{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+session.access_token,"apikey":"sb_publishable_C1Mv75fwRb3bA9gx6JqN7w_2c2CyJvF"},body:JSON.stringify({action,...body})});const d=await r.json();if(!r.ok)throw Error(d.error||"Streamer request failed");return d}
 const streamerMoney=(v,currency="EUR")=>new Intl.NumberFormat("en-IE",{style:"currency",currency:(currency||"EUR").toUpperCase()}).format(Number(v||0));
@@ -15,14 +15,191 @@ document.getElementById("streamerForm").onsubmit=async e=>{e.preventDefault();co
 document.getElementById("streamerRows").addEventListener("click",async e=>{const b=e.target.closest("button[data-streamer-action]");if(!b)return;const st=streamerData.find(x=>x.id===b.dataset.id);if(!st)return;try{if(b.dataset.streamerAction==="copy"){if(navigator.clipboard?.writeText)await navigator.clipboard.writeText(st.promo_code);else throw new Error("Clipboard access is unavailable in this browser.");msg("Copied "+st.promo_code+" to clipboard.",false,"streamerNotice");return}if(b.dataset.streamerAction==="toggle"){await streamerApi("update",{id:st.id,is_active:b.dataset.active==="true"});await loadStreamers();return}if(b.dataset.streamerAction==="edit"){const name=prompt("Streamer display name:",st.name);if(name===null)return;const promo_code=prompt("Promotional code:",st.promo_code);if(promo_code===null)return;await streamerApi("update",{id:st.id,name,promo_code});await loadStreamers();return}}catch(err){msg(err.message,true,"streamerNotice")}});
 document.getElementById("streamerRefresh").onclick=loadStreamers;
 document.getElementById("streamerExport").onclick=()=>{const headers=["Date","Streamer","Promo code","Plan","Paid amount","Currency","Discount percent","Discount amount","Stripe checkout"];const byId=new Map(streamerData.map(st=>[st.id,st]));const rows=[headers,...streamerOrders.map(o=>[o.paid_at||o.created_at,byId.get(o.streamer_id)?.name||"",o.promo_code,o.plan,o.amount,o.currency,o.promo_discount_percent,o.promo_discount_amount,o.provider_order_id])];const csv=rows.map(r=>r.map(v=>'"'+String(v??"").replace(/"/g,'""')+'"').join(",")).join("\n");const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));a.download="robcheat-streamer-referrals.csv";a.click();URL.revokeObjectURL(a.href)};
-async function loadFinanceSettings(){try{const r=await fetch(financeFn,{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+session.access_token,"apikey":"sb_publishable_C1Mv75fwRb3bA9gx6JqN7w_2c2CyJvF"},body:JSON.stringify({action:"get"})});const d=await r.json();if(!r.ok)throw Error(d.error||"Unable to load split settings");financeSettings=d.workspace;document.getElementById("splitPartnerName").value=financeSettings.partner_name||"Partner";document.getElementById("splitPartnerPercent").value=Number(financeSettings.profit_split_percent??50);renderSplitCompanyPercent()}catch(e){msg(e.message,true,"splitNotice")}}
-function renderSplitCompanyPercent(){const p=Math.min(100,Math.max(0,Number(document.getElementById("splitPartnerPercent").value)||0));document.getElementById("splitCompanyPercent").textContent=(100-p).toFixed(2).replace(/\.00$/,"")+"%"}
-document.getElementById("splitPartnerPercent").addEventListener("input",renderSplitCompanyPercent);
-document.getElementById("splitSettingsForm").onsubmit=async e=>{e.preventDefault();try{const body={action:"save",partner_name:document.getElementById("splitPartnerName").value.trim(),profit_split_percent:Number(document.getElementById("splitPartnerPercent").value)};const r=await fetch(financeFn,{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+session.access_token,"apikey":"sb_publishable_C1Mv75fwRb3bA9gx6JqN7w_2c2CyJvF"},body:JSON.stringify(body)});const d=await r.json();if(!r.ok)throw Error(d.error||"Could not save split settings");financeSettings=d.workspace;msg("Profit split settings saved.",false,"splitNotice");renderProfitSplit()}catch(err){msg(err.message,true,"splitNotice")}};
-function setSplitRange(range){splitCurrentRange=String(range);const now=new Date(),to=localISODate(now);document.getElementById("splitTo").value=to;if(range==="all"){document.getElementById("splitFrom").value="";loadProfitSplit(true);return}const days=range==="today"?1:Number(range);const from=new Date(now);from.setDate(from.getDate()-(days-1));document.getElementById("splitFrom").value=localISODate(from);loadProfitSplit(false)}
-async function loadProfitSplit(allTime=false){try{const from=document.getElementById("splitFrom").value,to=document.getElementById("splitTo").value;if(!to)throw Error("Choose an end date.");if(!allTime&&(!from||from>to))throw Error("Choose a valid date range.");document.getElementById("splitRows").innerHTML='<tr><td colspan="4">Loading Stripe activity…</td></tr>';const r=await fetch(stripeFn,{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+session.access_token,"apikey":"sb_publishable_C1Mv75fwRb3bA9gx6JqN7w_2c2CyJvF"},body:JSON.stringify({startDate:from,endDate:to,allTime:!!allTime})});const d=await r.json();if(!r.ok)throw Error(d.error||"Stripe data unavailable");splitData=d;renderProfitSplit()}catch(e){document.getElementById("splitRows").innerHTML='<tr><td colspan="4">'+esc(e.message)+'</td></tr>';msg("Could not calculate the split: "+e.message,true,"splitNotice")}}
-function splitMoney(cents){const c=splitData?.currency&&splitData.currency!=="MULTI"?splitData.currency:"EUR";return new Intl.NumberFormat("en-IE",{style:"currency",currency:c}).format(Number(cents||0)/100)}
-function splitValues(net){const pct=Number(financeSettings?.profit_split_percent??document.getElementById("splitPartnerPercent").value??50);const partner=Math.round(Number(net||0)*pct/100);return {partner,company:Number(net||0)-partner}}
-function renderProfitSplit(){if(!splitData)return;const totals=splitData.totals||{gross:0,net:0},shares=splitValues(totals.net);document.getElementById("splitGross").textContent=splitMoney(totals.gross);document.getElementById("splitNet").textContent=splitMoney(totals.net);document.getElementById("splitPartnerAmount").textContent=splitMoney(shares.partner);document.getElementById("splitCompanyAmount").textContent=splitMoney(shares.company);document.getElementById("partnerShareLabel").childNodes[0].textContent=(financeSettings?.partner_name||"Partner")+" share";const rows=splitData.daily||[];document.getElementById("splitRows").innerHTML=rows.slice().reverse().map(x=>{const parts=splitValues(x.net);return '<tr><td>'+x.date+'</td><td>'+splitMoney(x.net)+'</td><td>'+splitMoney(parts.partner)+'</td><td>'+splitMoney(parts.company)+'</td></tr>'}).join("")||'<tr><td colspan="4">No Stripe activity in this period.</td></tr>';document.getElementById("splitBasis").textContent="Period: "+(splitData.all_time?"All time":splitData.start_date+" – "+splitData.end_date)+". "+(splitData.truncated?"Stripe API pagination limit reached; totals may be incomplete. ":"")+"Partner receives "+Number(financeSettings?.profit_split_percent??0)+"%; ROB CHEAT receives the remaining "+(100-Number(financeSettings?.profit_split_percent??0))+"%. Net values include Stripe fees and refunds."}
-document.querySelectorAll(".split-range").forEach(b=>b.onclick=()=>setSplitRange(b.dataset.range));document.getElementById("splitApply").onclick=()=>loadProfitSplit(false);document.getElementById("splitRefresh").onclick=()=>loadProfitSplit(splitCurrentRange==="all");
-document.getElementById("splitExport").onclick=()=>{if(!splitData)return;const rows=[["Date","Stripe net proceeds","Partner share","ROB CHEAT share"],...(splitData.daily||[]).map(x=>{const p=splitValues(x.net);return [x.date,(x.net/100).toFixed(2),(p.partner/100).toFixed(2),(p.company/100).toFixed(2)]})];const csv=rows.map(r=>r.map(v=>'"'+String(v??"").replace(/"/g,'""')+'"').join(",")).join("\n");const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));a.download="robcheat-profit-split.csv";a.click();URL.revokeObjectURL(a.href)};
+async function loadFinanceSettings(){
+ try{
+  const r=await fetch(financeFn,{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+session.access_token,"apikey":"sb_publishable_C1Mv75fwRb3bA9gx6JqN7w_2c2CyJvF"},body:JSON.stringify({action:"get"})});
+  const d=await r.json();if(!r.ok)throw Error(d.error||"Unable to load finance workspace");
+  financeSettings=d.workspace;
+  if(!financeSettings?.id)throw Error("Finance workspace is not configured.");
+ }catch(e){financeSettings=null;msg(e.message,true,"splitNotice")}
+}
+function setSplitRange(range){
+ splitCurrentRange=String(range);
+ const now=new Date(),to=localISODate(now);
+ document.getElementById("splitTo").value=to;
+ if(range==="all"){document.getElementById("splitFrom").value="";loadProfitSplit(true);return}
+ const days=range==="today"?1:Number(range);
+ const from=new Date(now);from.setDate(from.getDate()-(days-1));
+ document.getElementById("splitFrom").value=localISODate(from);
+ loadProfitSplit(false);
+}
+async function loadProfitSplit(allTime=false){
+ try{
+  const from=document.getElementById("splitFrom").value,to=document.getElementById("splitTo").value;
+  if(!to)throw Error("Choose an end date.");
+  if(!allTime&&(!from||from>to))throw Error("Choose a valid date range.");
+  document.getElementById("splitRows").innerHTML='<tr><td colspan="4">Loading Stripe activity…</td></tr>';
+  const r=await fetch(stripeFn,{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+session.access_token,"apikey":"sb_publishable_C1Mv75fwRb3bA9gx6JqN7w_2c2CyJvF"},body:JSON.stringify({startDate:from,endDate:to,allTime:!!allTime})});
+  const d=await r.json();if(!r.ok)throw Error(d.error||"Stripe data unavailable");
+  splitData=d;
+  await loadWithdrawals();
+  renderProfitSplit();
+ }catch(e){
+  document.getElementById("splitRows").innerHTML='<tr><td colspan="4">'+esc(e.message)+'</td></tr>';
+  msg("Could not calculate the split: "+e.message,true,"splitNotice");
+ }
+}
+function splitCurrency(){return String(splitData?.currency||"EUR").toUpperCase()}
+function splitMoney(cents,currency){
+ const c=(currency||splitCurrency())==="MULTI"?"EUR":(currency||splitCurrency());
+ return new Intl.NumberFormat("en-IE",{style:"currency",currency:c}).format(Number(cents||0)/100);
+}
+function splitValues(net){
+ const nemilosu=Math.round(Number(net||0)/2);
+ return {nemilosu,poker:Number(net||0)-nemilosu};
+}
+function periodWithdrawalRows(){
+ if(!splitData)return [];
+ const start=splitData.start_date||null,end=splitData.end_date||null;
+ return withdrawalData.filter(w=>(!start||w.withdrawal_date>=start)&&(!end||w.withdrawal_date<=end));
+}
+function withdrawalTotalMinor(partnerKey,currency){
+ return periodWithdrawalRows().filter(w=>w.partner_key===partnerKey&&w.currency===currency)
+  .reduce((sum,w)=>sum+Math.round(Number(w.amount||0)*100),0);
+}
+function updateWithdrawalFormState(){
+ const currency=splitCurrency(),multi=currency==="MULTI",ready=!!financeSettings?.id&&!!splitData&&!multi;
+ const label=document.getElementById("withdrawalCurrency");
+ const amount=document.getElementById("withdrawalAmount");
+ const save=document.getElementById("withdrawalSave");
+ const date=document.getElementById("withdrawalDate");
+ if(label)label.textContent=multi?"Multiple currencies":currency;
+ if(amount)amount.disabled=!ready;
+ if(save)save.disabled=!ready;
+ if(date)date.disabled=!financeSettings?.id;
+ const note=document.getElementById("withdrawalCurrencyNote");
+ if(note)note.textContent=multi
+  ?"The selected Stripe range contains multiple currencies. Withdrawals are paused because the dashboard does not convert currencies."
+  :(!financeSettings?.id?"Finance workspace is unavailable.":"Amounts are recorded in "+currency+". This records a withdrawal only; it does not send a bank or Stripe payout.");
+ if(date&&!date.value)date.value=localISODate(new Date());
+}
+async function loadWithdrawals(){
+ if(!financeSettings?.id){
+  document.getElementById("withdrawalRows").innerHTML='<tr><td colspan="5">Finance workspace is unavailable.</td></tr>';
+  updateWithdrawalFormState();return false;
+ }
+ try{
+  let all=[],offset=0,batch=1000;
+  while(true){
+   const {data,error}=await sb.from("profit_split_withdrawals")
+    .select("id,partner_key,amount,currency,withdrawal_date,description,created_at")
+    .eq("workspace_id",financeSettings.id)
+    .order("withdrawal_date",{ascending:false})
+    .order("created_at",{ascending:false})
+    .range(offset,offset+batch-1);
+   if(error)throw error;
+   const rows=data||[];all.push(...rows);
+   if(rows.length<batch)break;
+   offset+=batch;
+  }
+  withdrawalData=all;
+  renderWithdrawals();
+  return true;
+ }catch(e){
+  document.getElementById("withdrawalRows").innerHTML='<tr><td colspan="5">'+esc(e.message||"Unable to load withdrawals.")+'</td></tr>';
+  msg("Could not load withdrawals: "+(e.message||"Unknown error"),true,"splitNotice");
+  updateWithdrawalFormState();
+  return false;
+ }
+}
+function renderWithdrawals(){
+ const body=document.getElementById("withdrawalRows");
+ if(!body)return;
+ body.innerHTML=withdrawalData.map(w=>{
+  const partner=w.partner_key==="nemilosu"?"Nemilosu":"Poker";
+  const date=new Date(w.withdrawal_date+"T12:00:00").toLocaleDateString("ro-RO");
+  return '<tr><td>'+esc(date)+'</td><td><strong>'+partner+'</strong></td><td>'+streamerMoney(w.amount,w.currency)+'</td><td>'+esc(w.description||"—")+'</td><td><button class="mini" type="button" data-withdrawal-delete="'+esc(w.id)+'">Delete</button></td></tr>';
+ }).join("")||'<tr><td colspan="5">No withdrawals recorded yet.</td></tr>';
+ updateWithdrawalFormState();
+}
+function renderProfitSplit(){
+ if(!splitData)return;
+ const totals=splitData.totals||{gross:0,net:0},shares=splitValues(totals.net),currency=splitCurrency(),multi=currency==="MULTI";
+ const nemilosuWithdrawn=multi?0:withdrawalTotalMinor("nemilosu",currency);
+ const pokerWithdrawn=multi?0:withdrawalTotalMinor("poker",currency);
+ document.getElementById("splitGross").textContent=multi?"Multiple currencies":splitMoney(totals.gross,currency);
+ document.getElementById("splitNet").textContent=multi?"Multiple currencies":splitMoney(totals.net,currency);
+ document.getElementById("nemilosuShare").textContent=multi?"—":splitMoney(shares.nemilosu,currency);
+ document.getElementById("nemilosuWithdrawn").textContent=multi?"—":splitMoney(nemilosuWithdrawn*1,currency);
+ document.getElementById("nemilosuRemaining").textContent=multi?"—":splitMoney(shares.nemilosu-nemilosuWithdrawn,currency);
+ document.getElementById("pokerShare").textContent=multi?"—":splitMoney(shares.poker,currency);
+ document.getElementById("pokerWithdrawn").textContent=multi?"—":splitMoney(pokerWithdrawn*1,currency);
+ document.getElementById("pokerRemaining").textContent=multi?"—":splitMoney(shares.poker-pokerWithdrawn,currency);
+ const rows=splitData.daily||[];
+ document.getElementById("splitRows").innerHTML=rows.slice().reverse().map(x=>{
+  const parts=splitValues(x.net);
+  return '<tr><td>'+x.date+'</td><td>'+ (multi?"—":splitMoney(x.net,currency))+'</td><td>'+ (multi?"—":splitMoney(parts.nemilosu,currency))+'</td><td>'+ (multi?"—":splitMoney(parts.poker,currency))+'</td></tr>';
+ }).join("")||'<tr><td colspan="4">No Stripe activity in this period.</td></tr>';
+ const periodLabel=splitData.all_time?"All time":splitData.start_date+" – "+splitData.end_date;
+ document.getElementById("splitBasis").textContent="Period: "+periodLabel+". Stripe net is split equally: 50% Nemilosu and 50% Poker. Each partner's remaining balance is their allocation less only their own withdrawals dated within the selected period. "+(splitData.truncated?"Stripe API pagination limit reached; totals may be incomplete. ":"")+(multi?" Multiple currencies are present and are not converted into a common currency.":" Net values include Stripe fees and refunds.");
+ updateWithdrawalFormState();
+}
+document.querySelectorAll(".split-range").forEach(b=>b.onclick=()=>setSplitRange(b.dataset.range));
+document.getElementById("splitApply").onclick=()=>loadProfitSplit(false);
+document.getElementById("splitRefresh").onclick=()=>loadProfitSplit(splitCurrentRange==="all");
+document.getElementById("withdrawalForm").onsubmit=async e=>{
+ e.preventDefault();
+ const button=document.getElementById("withdrawalSave");
+ try{
+  const currency=splitCurrency(),amount=Number(document.getElementById("withdrawalAmount").value);
+  if(!financeSettings?.id)throw Error("Finance workspace is unavailable.");
+  if(!splitData)throw Error("Load the Stripe figures first.");
+  if(currency==="MULTI")throw Error("Choose a Stripe date range with a single currency before recording a withdrawal.");
+  if(!Number.isFinite(amount)||amount<=0)throw Error("Enter a valid withdrawal amount greater than zero.");
+  const partner_key=document.getElementById("withdrawalPartner").value;
+  if(!["nemilosu","poker"].includes(partner_key))throw Error("Choose Nemilosu or Poker.");
+  const withdrawal_date=document.getElementById("withdrawalDate").value||localISODate(new Date());
+  const description=document.getElementById("withdrawalDescription").value.trim();
+  button.disabled=true;
+  const {error}=await sb.from("profit_split_withdrawals").insert({
+   workspace_id:financeSettings.id,partner_key,amount,currency,withdrawal_date,
+   description:description||null,created_by:session.user.id
+  });
+  if(error)throw error;
+  document.getElementById("withdrawalAmount").value="";
+  document.getElementById("withdrawalDescription").value="";
+  document.getElementById("withdrawalDate").value=localISODate(new Date());
+  await loadWithdrawals();
+  renderProfitSplit();
+  msg("Withdrawal recorded for "+(partner_key==="nemilosu"?"Nemilosu":"Poker")+".",false,"splitNotice");
+ }catch(e){msg(e.message||"Could not record withdrawal.",true,"splitNotice")}
+ finally{button.disabled=false;updateWithdrawalFormState()}
+};
+document.getElementById("withdrawalRows").addEventListener("click",async e=>{
+ const button=e.target.closest("button[data-withdrawal-delete]");
+ if(!button)return;
+ const item=withdrawalData.find(w=>w.id===button.dataset.withdrawalDelete);
+ if(!item)return;
+ const partner=item.partner_key==="nemilosu"?"Nemilosu":"Poker";
+ if(!confirm("Delete the "+partner+" withdrawal of "+streamerMoney(item.amount,item.currency)+"?"))return;
+ button.disabled=true;
+ try{
+  const {error}=await sb.from("profit_split_withdrawals").delete().eq("id",item.id).eq("workspace_id",financeSettings.id);
+  if(error)throw error;
+  await loadWithdrawals();renderProfitSplit();
+  msg("Withdrawal deleted.",false,"splitNotice");
+ }catch(e){msg(e.message||"Could not delete withdrawal.",true,"splitNotice")}
+});
+document.getElementById("splitExport").onclick=()=>{
+ if(!splitData)return;
+ const rows=[
+  ["Date","Stripe net proceeds","Nemilosu allocation","Poker allocation"],
+  ...(splitData.daily||[]).map(x=>{const p=splitValues(x.net);return [x.date,(Number(x.net||0)/100).toFixed(2),(Number(p.nemilosu||0)/100).toFixed(2),(Number(p.poker||0)/100).toFixed(2)]}),
+  [],
+  ["Withdrawal history for selected period"],
+  ["Date","Partner","Amount","Currency","Description"],
+  ...periodWithdrawalRows().map(w=>[w.withdrawal_date,w.partner_key==="nemilosu"?"Nemilosu":"Poker",w.amount,w.currency,w.description||""])
+ ];
+ const csv=rows.map(r=>r.map(v=>'"'+String(v??"").replace(/"/g,'""')+'"').join(",")).join("\n");
+ const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));a.download="robcheat-profit-split.csv";a.click();URL.revokeObjectURL(a.href);
+};
