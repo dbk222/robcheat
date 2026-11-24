@@ -35,7 +35,7 @@
 <script>
 let sb=null,session=null,portalData=null;
 const el=(id)=>document.getElementById(id);
-const esc=(v)=>String(v??"").replace(/[&<>"']/g,(c)=>({"&":"&amp;","<":"&lt;",">":"&gt;","\\"":"&quot;","'":"&#39;"}[c]));
+const esc=(v)=>String(v??"").replace(/[&<>"']/g,(c)=>({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;"}[c]||"&quot;"));
 function money(value,currency){return new Intl.NumberFormat("en-IE",{style:"currency",currency:String(currency||"EUR").toUpperCase()}).format(Number(value||0))}
 async function loadPortal(){
   const response=await fetch("/api/streamer-portal",{headers:{"Authorization":"Bearer "+session.access_token}});
