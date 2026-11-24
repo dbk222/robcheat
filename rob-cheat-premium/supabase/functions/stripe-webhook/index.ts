@@ -14,6 +14,34 @@ Deno.serve(async req=>{
  const raw=await req.text(),sig=req.headers.get("stripe-signature");
  if(!sig)return json({error:"Missing signature"},400);
  let event;try{event=await stripe.webhooks.constructEventAsync(raw,sig,whsec,undefined,Stripe.createSubtleCryptoProvider())}catch{return json({error:"Invalid signature"},400)}
+ if(event.type==="charge.refunded"){
+  const charge=event.data.object as Stripe.Charge;
+  const paymentIntentId=typeof charge.payment_intent==="string"?charge.payment_intent:charge.payment_intent?.id;
+  if(!paymentIntentId)return json({received:true,refund_without_payment_intent:true});
+  const admin=createClient(Deno.env.get("SUPABASE_URL")!,Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,{auth:{persistSession:false}});
+  const {data:order,error:orderError}=await admin.from("orders")
+   .select("id,provider_order_id,streamer_id,promo_code,referral_attribution_id,visitor_id,attribution_source,amount,currency")
+   .eq("stripe_payment_intent",paymentIntentId).maybeSingle();
+  if(orderError)return json({error:"Could not find order for refund event"},500);
+  if(!order)return json({received:true,order_not_found:true});
+  const refundedAmount=Math.min(Number(charge.amount_refunded||0)/100,Number(order.amount||0));
+  const fullyRefunded=!!charge.refunded||Number(charge.amount_refunded||0)>=Number(charge.amount||0);
+  const {error:updateError}=await admin.from("orders").update({
+   refunded_amount:refundedAmount,status:fullyRefunded?"refunded":"paid"
+  }).eq("id",order.id);
+  if(updateError)return json({error:"Refund received but order record could not be updated"},500);
+  if(order.streamer_id){
+   const {error:eventError}=await admin.from("streamer_referral_events").upsert({
+    streamer_id:order.streamer_id,event_type:"refund",visitor_id:order.visitor_id||null,
+    promo_code:order.promo_code||null,attribution_source:order.attribution_source||"referral_link",
+    attribution_id:order.referral_attribution_id||null,order_id:order.id,
+    provider_session_id:order.provider_order_id,
+    metadata:{refunded_amount:refundedAmount,currency:String(charge.currency||order.currency||"eur").toUpperCase(),fully_refunded:fullyRefunded}
+   },{onConflict:"event_type,provider_session_id"});
+   if(eventError)return json({error:"Refund was recorded but streamer refund event could not be saved"},500);
+  }
+  return json({received:true,refund_recorded:true,fully_refunded:fullyRefunded});
+ }
  if(event.type!=="checkout.session.completed")return json({received:true});
  const s=event.data.object as Stripe.Checkout.Session;
  if(s.payment_status!=="paid")return json({received:true,unpaid:true});
@@ -64,7 +92,8 @@ Deno.serve(async req=>{
  const {data:attributedOrder,error:attributionError}=await admin.from("orders").update({
   streamer_id:streamerId||null,promo_code:promoCode||null,promo_discount_percent:discountPercent,promo_discount_amount:discountMinor/100,
   visitor_id:visitorId||null,attribution_source:attributionSource||null,referral_attribution_id:attributionId||null,
-  referral_clicked_at:referralClickedAt,referral_expires_at:referralExpiresAt
+  referral_clicked_at:referralClickedAt,referral_expires_at:referralExpiresAt,
+  stripe_payment_intent:typeof s.payment_intent==="string"?s.payment_intent:(s.payment_intent as any)?.id||null
  }).eq("provider_order_id",s.id).select("id").maybeSingle();
  if(attributionError||!attributedOrder)return json({error:"Order created but referral attribution could not be saved"},500);
  if(streamerId){
