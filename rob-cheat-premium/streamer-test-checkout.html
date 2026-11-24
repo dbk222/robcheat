@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ROB CHEAT — Staging Checkout Test</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{color-scheme:dark;--bg:#080a0c;--panel:#12171c;--line:#29333b;--muted:#8996a0;--text:#edf3f3;--accent:#76e3b3;--amber:#f2c67b;--red:#ff8797}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 16% 0,#14261e 0,#080a0c 42%);color:var(--text);font:14px Inter,system-ui,-apple-system,Segoe UI,sans-serif}.wrap{max-width:780px;margin:0 auto;padding:34px 20px 60px}.brand{font-size:12px;letter-spacing:.2em;font-weight:800}.brand span{color:var(--accent)}.sub{color:var(--muted);font-size:12px;line-height:1.6;margin-top:7px}h1{font-size:34px;letter-spacing:-.05em;margin:20px 0 8px}h1 em{font-style:normal;color:var(--accent)}h2{font-size:16px;margin:0 0 12px}.panel{background:linear-gradient(145deg,#151b20,#0e1216);border:1px solid var(--line);border-radius:16px;padding:20px;margin-top:18px}.form{display:grid;gap:12px}label{display:grid;gap:7px;color:#bac4cc;font-size:12px}input,select{background:#090d10;border:1px solid #35414a;color:#f5f8f8;border-radius:9px;padding:12px;width:100%;font:inherit}.btn{border:1px solid #385644;background:#14211b;color:var(--accent);padding:11px 14px;border-radius:9px;font-size:12px;font-weight:700;cursor:pointer}.btn.secondary{background:#141a20;border-color:#3a454f;color:#e8edef}.btn:disabled{opacity:.4}.actions{display:flex;gap:8px;flex-wrap:wrap}.notice{color:var(--muted);font-size:12px;line-height:1.6;margin-top:10px}.error{color:var(--red)}.success{color:var(--accent)}.pill{border:1px solid #3e5c4b;color:var(--accent);padding:4px 9px;border-radius:99px;font-size:10px;display:inline-block}.hidden{display:none!important}.result{margin-top:15px;border:1px solid #3b5d49;background:#0b1510;border-radius:12px;padding:16px;line-height:1.7}.result strong{color:#9cebc3}.top{display:flex;justify-content:space-between;align-items:center;gap:14px}.price{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #29333b;padding:12px 0;font-size:13px}.price:last-child{border:0}@media(max-width:600px){.wrap{padding:22px 14px 42px}h1{font-size:28px}.top{align-items:flex-start;flex-direction:column}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><div><div class="brand">ROB <span>CHEAT</span> / STAGING CHECKOUT</div><div class="sub">Internal test flow · No Stripe session · No real payment</div></div><a class="btn secondary" href="/">Back to website</a></div>
+  <h1>Referral <em>checkout test.</em></h1>
+  <p class="sub">This staging page tests the 30-day saved referral token, manual promo-code priority, plan eligibility and checkout event recording. It never charges a card.</p>
+
+  <section class="panel" id="authPanel">
+    <h2>Staging customer account</h2>
+    <div class="form">
+      <label>Email<input id="email" type="email" required autocomplete="email"></label>
+      <label>Password<input id="password" type="password" minlength="12" required autocomplete="current-password" placeholder="At least 12 characters"></label>
+      <div class="actions"><button class="btn" id="signIn">Sign in</button><button class="btn secondary" id="signUp">Create staging account</button></div>
+    </div>
+    <div id="authNotice" class="notice"></div>
+  </section>
+
+  <section class="panel hidden" id="testPanel">
+    <div class="top"><h2>Simulate checkout</h2><span class="pill">No payment</span></div>
+    <p class="notice">Choose the plan, optionally enter a promo code, then record the referral attribution. If you enter a code manually, it takes priority over the saved referral link. An invalid manual code will not fall back to the saved referral.</p>
+    <div class="form">
+      <label>Plan
+        <select id="plan">
+          <option value="day">Daily — €2.00 (no discount)</option>
+          <option value="week">Weekly — €5.00 (no discount)</option>
+          <option value="month" selected>Monthly — €10.00 (10% streamer discount)</option>
+          <option value="lifetime">Lifetime — €20.00 (10% streamer discount)</option>
+        </select>
+      </label>
+      <label>Manual promo code (optional)<input id="promoCode" maxlength="24" autocapitalize="characters" placeholder="e.g. SCHIOPU"></label>
+      <div class="actions"><button class="btn" id="record">Record staging checkout</button><button class="btn secondary" id="logout">Sign out</button></div>
+    </div>
+    <div id="referralSummary" class="notice"></div>
+    <div id="result" class="result hidden"></div>
+  </section>
+  <div class="notice">Environment: separate Supabase Free project <strong>robcheat-streamer-staging</strong>. Production accounts and Stripe are not used in this test.</div>
+</div>
+<script>
+let sb=null,session=null;
+const el=(id)=>document.getElementById(id);
+async function init(){
+ try{
+  const response=await fetch("/api/streamer-config",{cache:"no-store"}),cfg=await response.json();
+  if(!response.ok)throw new Error(cfg.error||"Staging is not configured for this Preview.");
+  sb=window.supabase.createClient(cfg.supabaseUrl,cfg.publishableKey);
+  const {data}=await sb.auth.getSession();session=data.session;
+  await updateUI();
+ }catch(error){el("authNotice").textContent=error.message;el("authNotice").classList.add("error")}
+}
+async function updateUI(){
+ if(session){el("authPanel").classList.add("hidden");el("testPanel").classList.remove("hidden")}
+ else{el("authPanel").classList.remove("hidden");el("testPanel").classList.add("hidden")}
+ const expires=localStorage.getItem("robcheat_referral_expires_at");
+ const code=localStorage.getItem("robcheat_referral_code");
+ el("referralSummary").textContent=code&&expires&&new Date(expires)>new Date()
+  ?"Saved referral: "+code+" · expires "+new Date(expires).toLocaleString()
+  :"No active saved referral token found in this browser. You can still test a manually entered promo code.";
+}
+async function auth(mode){
+ el("authNotice").textContent=mode==="signin"?"Signing in…":"Creating staging account…";
+ const email=el("email").value.trim().toLowerCase(),password=el("password").value;
+ if(!email||password.length<12){el("authNotice").textContent="Enter a valid email and a password of at least 12 characters.";return}
+ const result=mode==="signin"
+  ?await sb.auth.signInWithPassword({email,password})
+  :await sb.auth.signUp({email,password,options:{data:{display_name:"Staging test customer"}}});
+ if(result.error){el("authNotice").textContent=result.error.message;el("authNotice").classList.add("error");return}
+ session=result.data.session;
+ if(!session){el("authNotice").textContent="Account created. Check your email for confirmation, then sign in here.";return}
+ el("authNotice").textContent="Signed in to the staging project.";
+ await updateUI();
+}
+el("signIn").onclick=()=>auth("signin");
+el("signUp").onclick=()=>auth("signup");
+el("logout").onclick=async()=>{await sb.auth.signOut();session=null;await updateUI()};
+el("record").onclick=async()=>{
+ const button=el("record");button.disabled=true;el("result").classList.add("hidden");
+ try{
+  const referralToken=localStorage.getItem("robcheat_referral_token")||"";
+  const response=await fetch("/api/streamer-attribution",{
+   method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+session.access_token},
+   body:JSON.stringify({plan:el("plan").value,promo_code:el("promoCode").value.trim().toUpperCase(),referral_token:referralToken})
+  });
+  const data=await response.json().catch(()=>({}));
+  if(!response.ok)throw new Error(data.error||"Staging attribution failed.");
+  const box=el("result");box.classList.remove("hidden");
+  if(data.attributed){
+   const discount=(Number(data.discount_minor||0)/100).toFixed(2);
+   box.innerHTML="<strong>Attribution recorded successfully.</strong><br>Streamer: "+data.promo_code+
+    "<br>Source: "+data.attribution_source+"<br>Plan: "+data.plan+
+    "<br>Discount: "+data.discount_percent+"% (€"+discount+")"+
+    "<br><br><strong>No Stripe Checkout session was created and no payment was taken.</strong>";
+  }else{
+   box.innerHTML="<strong>No streamer attribution recorded.</strong><br>No valid manual code or saved referral was found.<br><br><strong>No Stripe Checkout session was created and no payment was taken.</strong>";
+  }
+ }catch(error){el("result").classList.remove("hidden");el("result").innerHTML="<span style='color:#ff8797'>"+String(error.message||"Error")+"</span>"}
+ finally{button.disabled=false}
+};
+init();
+</script>
+</body></html>
