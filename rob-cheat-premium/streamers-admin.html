@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ROB CHEAT — Streamer Control</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{color-scheme:dark;--bg:#08090b;--panel:#111419;--panel2:#151a21;--line:#28313a;--muted:#89939e;--text:#f3f6f8;--accent:#6be0ad;--red:#ff8294;--amber:#f2c477}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 15% 0%,#14231e 0,#08090b 36%);color:var(--text);font:14px Inter,system-ui,-apple-system,Segoe UI,sans-serif}
+.wrap{max-width:1400px;margin:0 auto;padding:32px 24px 64px}.top{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:28px}.brand{font-size:13px;letter-spacing:.2em;font-weight:800}.brand span{color:var(--accent)}.sub{color:var(--muted);font-size:12px;margin-top:6px}
+h1{font-size:34px;letter-spacing:-.04em;margin:0 0 8px}h1 em{font-style:normal;color:var(--accent)}h2{font-size:16px;margin:0}.muted{color:var(--muted)}.panel{background:linear-gradient(145deg,#151a20,#0e1115);border:1px solid var(--line);border-radius:16px;padding:20px;box-shadow:0 16px 40px #0004;margin-top:18px}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:18px}.stat{background:#11161b;border:1px solid var(--line);border-radius:14px;padding:16px}.stat small{display:block;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.1em}.stat strong{display:block;font-size:26px;margin-top:8px;letter-spacing:-.04em}
+button,input{font:inherit}input{background:#090c0f;border:1px solid #35414c;color:#fff;padding:12px 13px;border-radius:9px;width:100%;outline:none}input:focus{border-color:var(--accent)}label{display:grid;gap:7px;color:#b8c1ca;font-size:12px}.formgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.actions{display:flex;gap:8px;flex-wrap:wrap}.btn{border:1px solid #3a454f;color:#e9edf0;background:#161d23;border-radius:9px;padding:10px 13px;cursor:pointer;font-weight:700;font-size:12px}.btn:hover{border-color:var(--accent)}.primary{background:var(--accent);color:#07130d;border-color:var(--accent)}.danger{color:var(--red)}.btn:disabled{opacity:.4;cursor:not-allowed}.pill{border:1px solid #31433a;border-radius:99px;padding:4px 8px;color:var(--accent);font-size:10px;white-space:nowrap}.off{color:var(--amber);border-color:#57442a}.notice{color:var(--muted);font-size:12px;line-height:1.6;margin-top:10px}.error{color:var(--red)}.success{color:var(--accent)}
+.tablewrap{width:100%;overflow:auto;margin-top:14px}table{border-collapse:collapse;width:100%;min-width:980px}th,td{text-align:left;border-bottom:1px solid #283039;padding:12px 10px;vertical-align:middle}th{color:#8d9aa5;font-size:10px;text-transform:uppercase;letter-spacing:.1em;font-weight:700}td{font-size:12px}td strong{font-size:13px}.code{font-family:ui-monospace,monospace;color:#9bf0c5;letter-spacing:.06em}.email{color:#aeb8c1}.smallbtn{padding:7px 9px;font-size:10px}.login{max-width:420px;margin:9vh auto 0}.login h1{font-size:30px}.login form{display:grid;gap:12px;margin-top:18px}.hidden{display:none!important}.cred{margin-top:14px;background:#0b1711;border:1px solid #31513f;padding:14px;border-radius:12px;overflow-wrap:anywhere}.cred code{color:#9df0c3}.credhead{display:flex;justify-content:space-between;gap:12px;align-items:center}.toolbar{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}.right{display:flex;gap:9px;align-items:center}
+@media(max-width:760px){.wrap{padding:22px 14px 44px}.stats{grid-template-columns:repeat(2,minmax(0,1fr))}.formgrid{grid-template-columns:1fr}h1{font-size:28px}.top{align-items:flex-start}}
+</style>
+</head>
+<body>
+<div id="login" class="wrap login">
+  <div class="brand">ROB <span>CHEAT</span> / STAGING</div>
+  <p class="sub">Private streamer administration · Preview environment only</p>
+  <section class="panel">
+    <h1>Streamer <em>control.</em></h1>
+    <p class="muted">Sign in with a staging administrator account. Production credentials are not accepted here.</p>
+    <form id="loginForm">
+      <label>Email<input id="loginEmail" type="email" autocomplete="username" required></label>
+      <label>Password<input id="loginPassword" type="password" autocomplete="current-password" required></label>
+      <button class="btn primary" id="loginButton" type="submit">Sign in to staging</button>
+    </form>
+    <div id="loginNotice" class="notice"></div>
+  </section>
+</div>
+
+<div id="app" class="wrap hidden">
+  <header class="top">
+    <div><div class="brand">ROB <span>CHEAT</span> / STREAMER CONTROL</div><div class="sub">25 seeded streamer profiles · Isolated staging database</div></div>
+    <div class="right"><a class="btn" href="streamer.html" style="text-decoration:none">Open streamer portal ↗</a><button class="btn" id="logout">Log out</button></div>
+  </header>
+  <div class="toolbar"><div><h1>Streamer <em>management.</em></h1><div class="sub">Accounts, promo codes, referrals and paid test orders.</div></div><button class="btn" id="refresh">↻ Refresh</button></div>
+  <div class="stats">
+    <div class="stat"><small>Streamers</small><strong id="statStreamers">—</strong></div>
+    <div class="stat"><small>Referral clicks · 30d</small><strong id="statClicks">—</strong></div>
+    <div class="stat"><small>Checkout starts · 30d</small><strong id="statCheckouts">—</strong></div>
+    <div class="stat"><small>Paid referred orders</small><strong id="statOrders">—</strong></div>
+  </div>
+
+  <section class="panel">
+    <div class="toolbar"><h2>Add streamer</h2><span class="pill">Unique promo code</span></div>
+    <form id="createForm" class="formgrid" style="margin-top:16px">
+      <label>Streamer name<input id="newName" maxlength="64" required placeholder="e.g. Streamer name"></label>
+      <label>Promo code<input id="newCode" maxlength="24" required placeholder="e.g. STREAMER" autocapitalize="characters"></label>
+      <div class="actions" style="grid-column:1/-1"><button class="btn primary" id="createButton" type="submit">Create streamer</button><span class="notice">Codes use A–Z, 0–9, hyphens or underscores · 3–24 characters.</span></div>
+    </form>
+    <div id="notice" class="notice"></div>
+    <div id="credentials" class="cred hidden"></div>
+  </section>
+
+  <section class="panel">
+    <div class="toolbar"><h2>Streamer accounts & performance</h2><span class="notice" style="margin:0">Revenue is grouped by currency.</span></div>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Streamer</th><th>Promo code</th><th>Portal account</th><th>Clicks</th><th>Checkouts</th><th>Paid orders</th><th>Revenue</th><th>Status</th><th>Actions</th></tr></thead>
+      <tbody id="streamerRows"><tr><td colspan="9">Loading…</td></tr></tbody>
+    </table></div>
+  </section>
+
+  <section class="panel">
+    <div class="toolbar"><h2>Recent referred purchases</h2><span class="notice">Staging test orders are clearly labelled.</span></div>
+    <div class="tablewrap"><table style="min-width:760px">
+      <thead><tr><th>Date</th><th>Streamer</th><th>Code</th><th>Plan</th><th>Paid</th><th>Discount</th><th>Order</th></tr></thead>
+      <tbody id="orderRows"><tr><td colspan="7">No referred orders yet.</td></tr></tbody>
+    </table></div>
+  </section>
+</div>
+
+<script>
+let sb=null, session=null, streamers=[], recentOrders=[];
+const el=(id)=>document.getElementById(id);
+const esc=(v)=>String(v??"").replace(/[&<>"']/g,(c)=>({"&":"&amp;","<":"&lt;",">":"&gt;","\\"":"&quot;","'":"&#39;"}[c]));
+function notice(message,error){el("notice").textContent=message||"";el("notice").className="notice"+(error?" error":" success")}
+function money(value,currency){return new Intl.NumberFormat("en-IE",{style:"currency",currency:String(currency||"EUR").toUpperCase()}).format(Number(value||0))}
+async function api(action,payload){
+  const response=await fetch("/api/streamer-admin",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+session.access_token},body:JSON.stringify({action,...(payload||{})})});
+  const data=await response.json().catch(()=>({}));
+  if(!response.ok)throw new Error(data.error||"Streamer request failed.");
+  return data;
+}
+function showCredentials(title,email,password){
+  const box=el("credentials");box.classList.remove("hidden");
+  box.innerHTML="<div class='credhead'><strong>"+esc(title)+"</strong><button class='btn smallbtn' id='copyCredential'>Copy password</button></div><p class='notice'>Login email: <strong>"+esc(email)+"</strong></p><p class='notice'>Temporary password: <code id='tempPassword'>"+esc(password)+"</code></p><p class='notice'>Save this now. The portal only shows the password once.</p>";
+  el("copyCredential").onclick=async()=>{await navigator.clipboard.writeText(password);el("copyCredential").textContent="Copied"};
+}
+function revenueMarkup(obj){
+  const entries=Object.entries(obj||{});
+  return entries.length?entries.map(([currency,value])=>"<div>"+esc(money(value,currency))+"</div>").join(""):"—";
+}
+function render(){
+  el("statStreamers").textContent=streamers.length;
+  el("statClicks").textContent=streamers.reduce((n,s)=>n+Number(s.clicks||0),0);
+  el("statCheckouts").textContent=streamers.reduce((n,s)=>n+Number(s.checkouts||0),0);
+  el("statOrders").textContent=streamers.reduce((n,s)=>n+Number(s.paid_orders||0),0);
+  el("streamerRows").innerHTML=streamers.map((s)=>{
+    const status=s.is_active?"<span class='pill'>Active</span>":"<span class='pill off'>Paused</span>";
+    const account=s.account_email?"<div class='email'>"+esc(s.account_email)+"</div><span class='pill'>Linked</span>":"<span class='muted'>No portal account</span>";
+    const actions=[];
+    if(s.account_email){
+      actions.push("<button class='btn smallbtn' data-action='reset' data-id='"+esc(s.id)+"'>Reset password</button>");
+      actions.push("<button class='btn smallbtn' data-action='unlink' data-id='"+esc(s.id)+"'>Unlink</button>");
+    }else{
+      actions.push("<button class='btn smallbtn' data-action='account' data-id='"+esc(s.id)+"'>Create account</button>");
+    }
+    actions.push("<button class='btn smallbtn' data-action='test' data-id='"+esc(s.id)+"'>Test sale</button>");
+    actions.push("<button class='btn smallbtn' data-action='toggle' data-id='"+esc(s.id)+"' data-active='"+String(!!s.is_active)+"'>"+(s.is_active?"Pause":"Activate")+"</button>");
+    return "<tr><td><strong>"+esc(s.name)+"</strong><div class='notice'>"+esc(s.id.slice(0,8))+"</div></td><td class='code'>"+esc(s.promo_code)+"</td><td>"+account+"</td><td>"+Number(s.clicks||0)+"</td><td>"+Number(s.checkouts||0)+"</td><td>"+Number(s.paid_orders||0)+"</td><td>"+revenueMarkup(s.revenue_by_currency)+"</td><td>"+status+"</td><td><div class='actions'>"+actions.join("")+"</div></td></tr>";
+  }).join("")||"<tr><td colspan='9'>No streamers found.</td></tr>";
+  const nameById=new Map(streamers.map(s=>[s.id,s.name]));
+  el("orderRows").innerHTML=recentOrders.map((o)=>"<tr><td>"+esc(o.paid_at?new Date(o.paid_at).toLocaleString():"—")+"</td><td>"+esc(nameById.get(o.streamer_id)||"Unknown")+"</td><td class='code'>"+esc(o.promo_code||"—")+"</td><td>"+esc(o.plan)+"</td><td>"+esc(money(o.amount,o.currency))+"</td><td>"+esc(money(o.promo_discount_amount,o.currency))+"</td><td>"+esc(o.provider_order_id||"—")+"</td></tr>").join("")||"<tr><td colspan='7'>No referred purchases yet.</td></tr>";
+}
+async function refresh(){
+  el("streamerRows").innerHTML="<tr><td colspan='9'>Loading streamer data…</td></tr>";
+  try{const data=await api("list");streamers=data.streamers||[];recentOrders=data.recent_orders||[];render();notice("Staging data refreshed. No Production records are connected.");}
+  catch(error){notice(error.message,true);el("streamerRows").innerHTML="<tr><td colspan='9'>"+esc(error.message)+"</td></tr>"}
+}
+async function boot(){
+  try{
+    const response=await fetch("/api/streamer-config",{cache:"no-store"});
+    const cfg=await response.json();if(!response.ok)throw new Error(cfg.error||"Preview configuration unavailable.");
+    sb=window.supabase.createClient(cfg.supabaseUrl,cfg.publishableKey);
+    const current=await sb.auth.getSession();session=current.data.session;
+    if(session){await showApp()}else{el("login").classList.remove("hidden")}
+  }catch(error){el("loginNotice").textContent=error.message;el("loginNotice").classList.add("error");el("login").classList.remove("hidden")}
+}
+async function showApp(){
+  el("login").classList.add("hidden");el("app").classList.remove("hidden");
+  try{await refresh()}catch(error){notice(error.message,true)}
+}
+el("loginForm").onsubmit=async(e)=>{
+  e.preventDefault();el("loginButton").disabled=true;el("loginNotice").textContent="Signing in…";
+  try{const result=await sb.auth.signInWithPassword({email:el("loginEmail").value.trim(),password:el("loginPassword").value});if(result.error)throw result.error;session=result.data.session;await showApp()}
+  catch(error){el("loginNotice").textContent=error.message||"Sign-in failed.";el("loginNotice").classList.add("error")}
+  finally{el("loginButton").disabled=false}
+};
+el("logout").onclick=async()=>{await sb.auth.signOut();location.reload()};
+el("refresh").onclick=refresh;
+el("createForm").onsubmit=async(e)=>{
+  e.preventDefault();el("createButton").disabled=true;el("credentials").classList.add("hidden");
+  try{await api("create",{name:el("newName").value.trim(),promo_code:el("newCode").value.trim().toUpperCase()});el("createForm").reset();notice("Streamer and unique promo code created.");await refresh()}
+  catch(error){notice(error.message,true)}
+  finally{el("createButton").disabled=false}
+};
+el("streamerRows").addEventListener("click",async(e)=>{
+  const button=e.target.closest("button[data-action]");if(!button)return;
+  const id=button.dataset.id,action=button.dataset.action,s=streamers.find(x=>x.id===id);if(!s)return;
+  button.disabled=true;
+  try{
+    if(action==="account"){
+      const email=prompt("Email address for "+s.name+"'s streamer portal account:");
+      if(!email)return;
+      const result=await api("create_account",{streamer_id:id,email:email.trim()});
+      if(result.temporary_password)showCredentials("Streamer account created",email,result.temporary_password);
+      else notice("Existing account linked to "+s.name+". No new password was generated.");
+      await refresh();
+    }else if(action==="reset"){
+      if(!confirm("Generate a new temporary password for "+s.name+"?"))return;
+      const result=await api("reset_password",{streamer_id:id});
+      showCredentials("Password reset",s.account_email,result.temporary_password);
+      notice("New staging password created. Copy it and share it securely.");
+    }else if(action==="unlink"){
+      if(!confirm("Unlink the portal account from "+s.name+"? The Auth account itself will remain intact."))return;
+      await api("unlink_account",{streamer_id:id});notice("Portal account unlinked.");await refresh();
+    }else if(action==="toggle"){
+      await api("update",{id,is_active:!s.is_active});notice("Streamer status updated.");await refresh();
+    }else if(action==="test"){
+      const plan=prompt("Create a staging-only paid test order. Enter plan: day, week, month or lifetime","month");
+      if(!plan)return;
+      const result=await api("record_test_purchase",{streamer_id:id,plan:plan.trim().toLowerCase()});
+      notice("Staging test order recorded: "+money(result.test_order.amount,result.test_order.currency)+". No Stripe payment was made.");
+      await refresh();
+    }
+  }catch(error){notice(error.message,true)}
+  finally{button.disabled=false}
+});
+boot();
+</script>
+</body></html>
