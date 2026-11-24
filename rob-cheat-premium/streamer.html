@@ -64,7 +64,7 @@ async function loadPortal(){
 async function boot(){
  try{
   const configResponse=await fetch("/api/streamer-config",{cache:"no-store"}),cfg=await configResponse.json();
-  if(!configResponse.ok)throw new Error(cfg.error||"Preview configuration unavailable.");
+  if(!configResponse.ok)throw new Error(cfg.error||"Portal configuration unavailable.");
   sb=window.supabase.createClient(cfg.supabaseUrl,cfg.publishableKey);
   const result=await sb.auth.getSession();session=result.data.session;
   if(session){await showApp()}else{el("login").classList.remove("hidden")}
