@@ -20,18 +20,9 @@ window.continueCheckout=async function(skipCode=false){
   const {data:{session},error}=await sb.auth.getSession();if(error||!session)throw new Error("Your session expired. Please sign in again.");
   const productionHosts=new Set(["robcheat.fun","www.robcheat.fun","robcheat.vercel.app","robcheat-antarrobert-2659.vercel.app","robcheat-git-main-antarrobert-2659.vercel.app"]);
   if(!productionHosts.has(location.hostname)){
-   // Preview never creates a real Stripe session. It only tests referral attribution in the isolated Supabase project.
-   const configResponse=await fetch("/api/streamer-config",{cache:"no-store"});
-   if(!configResponse.ok)throw new Error("Streamer staging is unavailable. No payment was attempted.");
-   const referralToken=localStorage.getItem("robcheat_referral_token")||"";
-   const previewResponse=await fetch("/api/streamer-attribution",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+session.access_token},body:JSON.stringify({plan:pendingCheckoutPlan,promo_code:promoCode,referral_token:referralToken})});
-   const previewData=await previewResponse.json().catch(()=>({}));
-   if(!previewResponse.ok)throw new Error(previewData.error||"Preview attribution failed.");
-   if(previewData.attributed){
-    if(message)message.textContent="Staging attribution saved for "+previewData.promo_code+". Discount: "+previewData.discount_percent+"%. No Stripe payment was created.";
-   }else{
-    if(message)message.textContent="No active streamer attribution was found. This is a staging preview; no Stripe payment was created.";
-   }
+   if(message)message.innerHTML='Staging preview: real Stripe payments are disabled. <a href="/streamer-test-checkout.html" style="color:#9beac1;text-decoration:underline">Open the staging checkout test</a> to test attribution.';
+   planButtons.forEach(b=>b.disabled=false);
+   modalButtons.forEach(b=>b.disabled=false);
    return;
   }
   const response=await fetch("https://rzbvtzeqrcfutfafaamm.supabase.co/functions/v1/create-checkout",{method:"POST",headers:{"Content-Type":"application/json","apikey":"sb_publishable_C1Mv75fwRb3bA9gx6JqN7w_2c2CyJvF","Authorization":"Bearer "+session.access_token},body:JSON.stringify({plan:pendingCheckoutPlan,promo_code:promoCode})});
