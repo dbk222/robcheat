@@ -19,7 +19,12 @@
 </div>
 <div id="app" class="wrap hidden">
   <header class="top"><div><div class="brand">ROB <span>CHEAT</span> / STREAMER PORTAL</div><div class="sub">Private performance dashboard · Last 30 days</div></div><button id="logout" class="btn ghost">Log out</button></header>
-  <div><div class="status">● ACTIVE STREAMER ACCOUNT</div><h1>Welcome, <em id="streamerName">Streamer</em></h1><p class="sub">Promo code: <strong id="promoCode"></strong></p></div>
+  <div><div class="status">● ACTIVE STREAMER ACCOUNT</div><h1>Welcome, <em id="streamerName">Streamer</em></h1></div>
+  <section class="panel"><h2>Your discount code</h2>
+    <div class="linkrow"><code id="promoCode"></code><button class="btn" id="copyPromo">Copy code</button></div>
+    <p class="notice">Your audience receives 10% off Monthly and Lifetime plans with your code. Daily and Weekly plans are not discounted.</p>
+    <div id="promoNotice" class="notice"></div>
+  </section>
   <section class="panel"><h2>Your referral link</h2><p class="notice">Share this link with your audience. Clicks are saved with a 30-day referral window. An explicitly entered valid promo code at checkout takes priority over a saved referral link.</p>
     <div class="linkrow"><code id="referralLink"></code><button class="btn" id="copyLink">Copy link</button></div><div id="linkNotice" class="notice"></div>
   </section>
@@ -97,6 +102,14 @@ el("passwordForm").onsubmit=async(e)=>{
 };
 el("logout").onclick=async()=>{await sb.auth.signOut();location.reload()};
 el("copyLink").onclick=async()=>{await navigator.clipboard.writeText(el("referralLink").textContent);el("linkNotice").textContent="Referral link copied."};
+el("copyPromo").onclick=async()=>{
+  try{
+    await navigator.clipboard.writeText(el("promoCode").textContent);
+    el("promoNotice").textContent="Promo code copied.";
+  }catch(error){
+    el("promoNotice").textContent="Clipboard access was blocked. Select the code and copy it manually.";
+  }
+};
 boot();
 </script>
 </body></html>

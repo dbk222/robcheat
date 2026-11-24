@@ -282,7 +282,7 @@ async function checkout(n,p,t){
 }
 document.getElementById("discountCode")?.addEventListener("input",event=>{event.target.value=event.target.value.toUpperCase().replace(/[^A-Z0-9_-]/g,"").slice(0,24)});
 const sb=supabase.createClient("https://rzbvtzeqrcfutfafaamm.supabase.co","sb_publishable_C1Mv75fwRb3bA9gx6JqN7w_2c2CyJvF");
-async function openAccount(event){event.preventDefault();try{const {data:{session}}=await sb.auth.getSession();if(!session){location.href="account.html";return;}const {data:profile}=await sb.from("profiles").select("role").eq("id",session.user.id).maybeSingle();location.href=profile?.role==="admin"?"admin.html":"dashboard.html";}catch(e){location.href="account.html";}}function adminModal(){location.href='account.html?next=admin';}
+async function openAccount(event){event.preventDefault();try{const {data:{session}}=await sb.auth.getSession();if(!session){location.href="account.html";return;}const {data:profile}=await sb.from("profiles").select("role").eq("id",session.user.id).maybeSingle();location.href=profile?.role==="admin"?"admin.html":profile?.role==="streamer"?"streamer.html":"dashboard.html";}catch(e){location.href="account.html";}}function adminModal(){location.href='account.html?next=admin';}
 function closeModal(){document.getElementById('modal').classList.remove('open')}
 function demoPay(){toast('Choose an access plan to continue to secure checkout.');}
 function toast(s){let t=document.getElementById('toast');t.textContent=s;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3200)}

@@ -26,6 +26,11 @@ Deno.serve(async (req) => {
   const { data: authData, error: authError } = await admin.auth.getUser(token);
   if (authError || !authData.user) return json({ error: "Invalid session" }, 401);
 
+  const { data: profile, error: profileError } = await admin.from("profiles")
+    .select("role").eq("id", authData.user.id).maybeSingle();
+  if (profileError) return json({ error: "Could not verify streamer access." }, 500);
+  if (profile?.role !== "streamer") return json({ error: "Streamer access only." }, 403);
+
   const { data: streamer, error } = await admin.from("streamers")
     .select("id,name,promo_code,is_active,created_at")
     .eq("user_id", authData.user.id).maybeSingle();

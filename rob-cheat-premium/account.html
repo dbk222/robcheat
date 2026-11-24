@@ -69,7 +69,7 @@ function redirectAfterAuth(user){
   const plan=params.get('plan');
   sb.from('profiles').select('role').eq('id',user.id).maybeSingle().then(({data})=>{
     if(next==='checkout'){location.href='index.html'+(plan?'?checkout_plan='+encodeURIComponent(plan):'')+'#plans';return;}
-    location.href=data?.role==='admin'?'admin.html':'dashboard.html';
+    location.href=data?.role==='admin'?'admin.html':data?.role==='streamer'?'streamer.html':'dashboard.html';
   }).catch(()=>{location.href='dashboard.html';});
 }
 const visualMode=mode;
@@ -136,6 +136,8 @@ if(params.get('reset')==='1'||new URLSearchParams(location.hash.slice(1)).get('t
 }else mode('signup');
 (async()=>{
   const {data:{session}}=await sb.auth.getSession();
+  const isRecovery=params.get('reset')==='1'||new URLSearchParams(location.hash.slice(1)).get('type')==='recovery';
+  if(session&&!isRecovery){redirectAfterAuth(session.user);return;}
   if(session){
     $('below').innerHTML=language==='ro'?'Ești deja autentificat. <button type="button" id="signedOut">Deconectare</button>':'You are already signed in. <button type="button" id="signedOut">Sign out</button>';
     $('signedOut').onclick=async()=>{await sb.auth.signOut();location.reload();};

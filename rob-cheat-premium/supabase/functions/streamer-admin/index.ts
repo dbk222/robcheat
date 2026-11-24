@@ -189,8 +189,8 @@ Deno.serve(async (req) => {
         if (existingProfile?.role === "admin") return json({ error: "Administrator accounts cannot be linked as streamer accounts." }, 409);
         userId = existingUser.id;
         const { error: profileUpsertError } = await admin.from("profiles").upsert(
-          { id: userId, email, display_name: internalDisplayName, role: "customer" },
-          { onConflict: "id", ignoreDuplicates: true },
+          { id: userId, email, role: "streamer" },
+          { onConflict: "id", ignoreDuplicates: false },
         );
         if (profileUpsertError) throw profileUpsertError;
       } else {
@@ -203,8 +203,8 @@ Deno.serve(async (req) => {
         userId = data.user.id;
         createdAccount = true;
         const { error: profileInsertError } = await admin.from("profiles").upsert({
-          id: userId, email, display_name: internalDisplayName, role: "customer",
-        }, { onConflict: "id", ignoreDuplicates: true });
+          id: userId, email, display_name: internalDisplayName, role: "streamer",
+        }, { onConflict: "id", ignoreDuplicates: false });
         if (profileInsertError) {
           await admin.auth.admin.deleteUser(userId);
           throw profileInsertError;
@@ -242,8 +242,26 @@ Deno.serve(async (req) => {
 
       for (const streamer of streamers ?? []) {
         if (streamer.user_id) {
-          const { data: existingProfile } = await admin.from("profiles").select("email").eq("id", streamer.user_id).maybeSingle();
-          alreadyLinked.push({ name: streamer.name, promo_code: streamer.promo_code, login_email: existingProfile?.email ?? null });
+          const { data: existingProfile, error: profileLookupError } = await admin.from("profiles")
+            .select("email,role").eq("id", streamer.user_id).maybeSingle();
+          if (profileLookupError || !existingProfile) {
+            failed.push({ name: streamer.name, promo_code: streamer.promo_code, reason: "Linked account profile could not be loaded." });
+            continue;
+          }
+          if (existingProfile.role === "admin") {
+            failed.push({ name: streamer.name, promo_code: streamer.promo_code, reason: "An administrator account cannot be assigned as a streamer." });
+            continue;
+          }
+          if (existingProfile.role !== "streamer") {
+            const { error: roleUpdateError } = await admin.from("profiles")
+              .update({ role: "streamer", updated_at: new Date().toISOString() })
+              .eq("id", streamer.user_id);
+            if (roleUpdateError) {
+              failed.push({ name: streamer.name, promo_code: streamer.promo_code, reason: "Could not assign streamer access to the linked account." });
+              continue;
+            }
+          }
+          alreadyLinked.push({ name: streamer.name, promo_code: streamer.promo_code, login_email: existingProfile.email ?? null });
           continue;
         }
 
@@ -274,8 +292,8 @@ Deno.serve(async (req) => {
           }
 
           const { error: profileError } = await admin.from("profiles").upsert({
-            id: user.id, email: loginEmail, display_name: internalDisplayName, role: "customer",
-          }, { onConflict: "id", ignoreDuplicates: true });
+            id: user.id, email: loginEmail, display_name: internalDisplayName, role: "streamer",
+          }, { onConflict: "id", ignoreDuplicates: false });
           if (profileError) throw profileError;
 
           const { data: linked, error: linkError } = await admin.from("streamers").update({
@@ -325,11 +343,20 @@ Deno.serve(async (req) => {
 
     if (action === "unlink_account") {
       const streamerId = String(body.streamer_id ?? "");
+      const { data: before, error: beforeError } = await admin.from("streamers")
+        .select("user_id").eq("id", streamerId).maybeSingle();
+      if (beforeError) throw beforeError;
+      if (!before) return json({ error: "Streamer not found." }, 404);
       const { data, error } = await admin.from("streamers").update({
         user_id: null, updated_at: new Date().toISOString(),
       }).eq("id", streamerId).select("id,name,promo_code,user_id,is_active").maybeSingle();
       if (error) throw error;
-      if (!data) return json({ error: "Streamer not found." }, 404);
+      if (before.user_id) {
+        const { error: profileError } = await admin.from("profiles")
+          .update({ role: "customer", updated_at: new Date().toISOString() })
+          .eq("id", before.user_id).eq("role", "streamer");
+        if (profileError) throw profileError;
+      }
       return json({ streamer: data });
     }
 
