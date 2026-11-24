@@ -1,20 +1,121 @@
 let streamerData=[],streamerOrders=[],splitData=null,financeSettings=null,withdrawalData=[],splitCurrentRange='30';
 const streamerFn='/api/streamer-admin',financeFn='/api/finance-split';
-async function streamerApi(action,body={}){const r=await fetch(streamerFn,{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+session.access_token,"apikey":"sb_publishable_C1Mv75fwRb3bA9gx6JqN7w_2c2CyJvF"},body:JSON.stringify({action,...body})});const d=await r.json();if(!r.ok)throw Error(d.error||"Streamer request failed");return d}
+async function streamerApi(action,body={}) {
+ const r=await fetch(streamerFn,{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+session.access_token,"apikey":"sb_publishable_C1Mv75fwRb3bA9gx6JqN7w_2c2CyJvF"},body:JSON.stringify({action,...body})});
+ const d=await r.json().catch(()=>({}));
+ if(!r.ok)throw Error(d.error||"Streamer request failed");
+ return d;
+}
 const streamerMoney=(v,currency="EUR")=>new Intl.NumberFormat("en-IE",{style:"currency",currency:(currency||"EUR").toUpperCase()}).format(Number(v||0));
 const streamerDate=v=>v?new Date(v).toLocaleString():"—";
-async function loadStreamers(){const notice=document.getElementById("streamerNotice");try{const d=await streamerApi("list");streamerData=d.streamers||[];streamerOrders=d.recent_orders||[];renderStreamers();if(notice){notice.className="notice";notice.textContent="Loaded "+streamerData.length+" streamer codes and "+(d.paid_orders_count||0)+" paid referred orders."}}catch(e){if(notice){notice.className="notice error";notice.textContent="Could not load streamer data: "+e.message}document.getElementById("streamerRows").innerHTML='<tr><td colspan="8">'+esc(e.message)+'</td></tr>'}}
-function renderStreamers(){
- const totalOrders=streamerData.reduce((n,s)=>n+Number(s.orders||0),0),revenue=streamerData.reduce((n,s)=>n+Number(s.revenue||0),0);
- document.getElementById("streamerCount").textContent=streamerData.length.toLocaleString();document.getElementById("streamerOrders").textContent=totalOrders.toLocaleString();document.getElementById("streamerRevenue").textContent=streamerMoney(revenue);
- const byId=new Map(streamerData.map(s=>[s.id,s]));
- document.getElementById("streamerRows").innerHTML=streamerData.map(s=>'<tr><td><strong>'+esc(s.name)+'</strong></td><td><code>'+esc(s.promo_code)+'</code> <button class="mini" data-streamer-action="copy" data-id="'+esc(s.id)+'">Copy</button></td><td>'+Number(s.orders||0).toLocaleString()+'</td><td>'+streamerMoney(s.revenue)+'</td><td>'+streamerMoney(s.discount)+'</td><td><span class="pill '+(s.is_active?'':'warn')+'">'+(s.is_active?'Active':'Paused')+'</span></td><td>'+esc(streamerDate(s.last_order_at))+'</td><td><div class="actions"><button class="mini" data-streamer-action="edit" data-id="'+esc(s.id)+'">Edit</button><button class="mini" data-streamer-action="toggle" data-id="'+esc(s.id)+'" data-active="'+(!s.is_active)+'">'+(s.is_active?'Pause':'Activate')+'</button></div></td></tr>').join("")||'<tr><td colspan="8">No streamers yet. Add the first streamer above.</td></tr>';
- document.getElementById("streamerOrderRows").innerHTML=streamerOrders.map(o=>{const st=byId.get(o.streamer_id);return '<tr><td>'+esc(streamerDate(o.paid_at||o.created_at))+'</td><td>'+esc(st?.name||"Streamer")+'</td><td><code>'+esc(o.promo_code||st?.promo_code||"—")+'</code></td><td>'+esc(o.plan)+'</td><td>'+streamerMoney(o.amount,o.currency)+'</td><td>'+Number(o.promo_discount_percent||0)+'% · '+streamerMoney(o.promo_discount_amount,o.currency)+'</td><td><code>'+esc(String(o.provider_order_id||"").slice(0,18))+'</code></td></tr>'}).join("")||'<tr><td colspan="7">No referred purchases yet. New paid checkouts will appear here.</td></tr>';
+const streamerPortalUrl=()=>location.origin+"/streamer.html";
+const streamerReferralUrl=s=>location.origin+"/?ref="+encodeURIComponent(s.promo_code);
+function streamerRevenueText(revenue){
+ const entries=Object.entries(revenue||{});
+ return entries.length?entries.map(([currency,value])=>streamerMoney(value,currency)).join(" · "):"—";
 }
-document.getElementById("streamerForm").onsubmit=async e=>{e.preventDefault();const name=document.getElementById("streamerName").value.trim(),promo_code=document.getElementById("streamerCode").value.trim().toUpperCase();try{await streamerApi("create",{name,promo_code});document.getElementById("streamerForm").reset();msg("Streamer and promo code created.",false,"streamerNotice");await loadStreamers()}catch(err){msg(err.message,true,"streamerNotice")}};
-document.getElementById("streamerRows").addEventListener("click",async e=>{const b=e.target.closest("button[data-streamer-action]");if(!b)return;const st=streamerData.find(x=>x.id===b.dataset.id);if(!st)return;try{if(b.dataset.streamerAction==="copy"){if(navigator.clipboard?.writeText)await navigator.clipboard.writeText(st.promo_code);else throw new Error("Clipboard access is unavailable in this browser.");msg("Copied "+st.promo_code+" to clipboard.",false,"streamerNotice");return}if(b.dataset.streamerAction==="toggle"){await streamerApi("update",{id:st.id,is_active:b.dataset.active==="true"});await loadStreamers();return}if(b.dataset.streamerAction==="edit"){const name=prompt("Streamer display name:",st.name);if(name===null)return;const promo_code=prompt("Promotional code:",st.promo_code);if(promo_code===null)return;await streamerApi("update",{id:st.id,name,promo_code});await loadStreamers();return}}catch(err){msg(err.message,true,"streamerNotice")}});
+async function loadStreamers(){
+ const notice=document.getElementById("streamerNotice");
+ try{
+  const d=await streamerApi("list");streamerData=d.streamers||[];streamerOrders=d.recent_orders||[];renderStreamers();
+  if(notice){notice.className="notice";notice.textContent="Loaded "+streamerData.length+" streamer profiles, "+streamerData.filter(s=>s.user_id).length+" linked portal accounts and "+(d.paid_orders_count||0)+" paid referred orders."}
+ }catch(e){
+  if(notice){notice.className="notice error";notice.textContent="Could not load streamer data: "+e.message}
+  document.getElementById("streamerRows").innerHTML='<tr><td colspan="10">'+esc(e.message)+'</td></tr>';
+ }
+}
+function renderStreamers(){
+ const totalOrders=streamerData.reduce((n,s)=>n+Number(s.paid_orders||0),0);
+ const totalClicks=streamerData.reduce((n,s)=>n+Number(s.clicks||0),0);
+ const totalCheckouts=streamerData.reduce((n,s)=>n+Number(s.checkouts||0),0);
+ const linked=streamerData.filter(s=>s.user_id).length;
+ const totalRevenue={};
+ for(const s of streamerData)for(const [currency,value] of Object.entries(s.revenue_by_currency||{}))totalRevenue[currency]=Number(totalRevenue[currency]||0)+Number(value||0);
+ document.getElementById("streamerCount").textContent=streamerData.length.toLocaleString();
+ document.getElementById("streamerAccounts").textContent=linked.toLocaleString();
+ document.getElementById("streamerClicks").textContent=totalClicks.toLocaleString();
+ document.getElementById("streamerCheckouts").textContent=totalCheckouts.toLocaleString();
+ document.getElementById("streamerOrders").textContent=totalOrders.toLocaleString();
+ document.getElementById("streamerRevenue").textContent=streamerRevenueText(totalRevenue);
+ const byId=new Map(streamerData.map(s=>[s.id,s]));
+ document.getElementById("streamerRows").innerHTML=streamerData.map(s=>{
+  const account=s.account_email
+    ?'<strong>'+esc(s.account_email)+'</strong><div class="notice">Linked</div>'
+    :'<span class="notice">Not created</span>';
+  const accountAction=s.user_id
+    ?'<button class="mini" data-streamer-action="reset" data-id="'+esc(s.id)+'">Reset password</button><button class="mini" data-streamer-action="unlink" data-id="'+esc(s.id)+'">Unlink</button>'
+    :'<button class="mini" data-streamer-action="account" data-id="'+esc(s.id)+'">Create account</button>';
+  return '<tr><td><strong>'+esc(s.name)+'</strong></td>'+
+   '<td><code>'+esc(s.promo_code)+'</code><button class="mini" data-streamer-action="copy-code" data-id="'+esc(s.id)+'">Copy</button></td>'+
+   '<td>'+account+'</td>'+
+   '<td>'+Number(s.clicks||0).toLocaleString()+'</td>'+
+   '<td>'+Number(s.checkouts||0).toLocaleString()+'</td>'+
+   '<td>'+Number(s.paid_orders||0).toLocaleString()+'</td>'+
+   '<td>'+esc(streamerRevenueText(s.revenue_by_currency))+'</td>'+
+   '<td><span class="pill '+(s.is_active?'':'warn')+'">'+(s.is_active?'Active':'Paused')+'</span></td>'+
+   '<td><button class="mini" data-streamer-action="copy-link" data-id="'+esc(s.id)+'">Copy link</button><div class="notice"><a href="'+esc(streamerReferralUrl(s))+'" target="_blank" rel="noopener">Open</a></div></td>'+
+   '<td><div class="actions">'+accountAction+
+    '<button class="mini" data-streamer-action="edit" data-id="'+esc(s.id)+'">Edit</button>'+
+    '<button class="mini" data-streamer-action="toggle" data-id="'+esc(s.id)+'" data-active="'+(!s.is_active)+'">'+(s.is_active?'Pause':'Activate')+'</button></div></td></tr>';
+ }).join("")||'<tr><td colspan="10">No streamers yet. Add the first streamer above.</td></tr>';
+ document.getElementById("streamerOrderRows").innerHTML=streamerOrders.map(o=>{
+  const st=byId.get(o.streamer_id);
+  return '<tr><td>'+esc(streamerDate(o.paid_at||o.created_at))+'</td><td>'+esc(st?.name||"Streamer")+'</td><td><code>'+esc(o.promo_code||st?.promo_code||"—")+'</code></td><td>'+esc(o.plan)+'</td><td>'+streamerMoney(o.amount,o.currency)+'</td><td>'+Number(o.promo_discount_percent||0)+'% · '+streamerMoney(o.promo_discount_amount,o.currency)+'</td><td><code>'+esc(String(o.provider_order_id||"").slice(0,18))+'</code></td></tr>';
+ }).join("")||'<tr><td colspan="7">No referred purchases yet. Referral links are ready for internal testing.</td></tr>';
+}
+function showStreamerCredentials(title,email,password){
+ const box=document.getElementById("streamerCredentials");
+ if(!box){alert(title+"\nLogin: "+email+"\nTemporary password: "+password);return}
+ box.classList.remove("hidden");box.className="notice";
+ box.innerHTML='<strong>'+esc(title)+'</strong><br>Login: <code>'+esc(email)+'</code><br>Temporary password: <code id="streamerTempPassword">'+esc(password)+'</code> <button class="mini" id="copyStreamerPassword">Copy password</button><br><span class="notice">Save these details now. The temporary password is only returned once.</span>';
+ document.getElementById("copyStreamerPassword").onclick=async()=>{await navigator.clipboard.writeText(password);document.getElementById("copyStreamerPassword").textContent="Copied"};
+}
+document.getElementById("streamerForm").onsubmit=async e=>{
+ e.preventDefault();const name=document.getElementById("streamerName").value.trim(),promo_code=document.getElementById("streamerCode").value.trim().toUpperCase();
+ try{await streamerApi("create",{name,promo_code});document.getElementById("streamerForm").reset();msg("Streamer and unique referral code created.",false,"streamerNotice");await loadStreamers()}
+ catch(err){msg(err.message,true,"streamerNotice")}
+};
+document.getElementById("streamerRows").addEventListener("click",async e=>{
+ const b=e.target.closest("button[data-streamer-action]");if(!b)return;
+ const st=streamerData.find(x=>x.id===b.dataset.id);if(!st)return;
+ b.disabled=true;
+ try{
+  const action=b.dataset.streamerAction;
+  if(action==="copy-code"){await navigator.clipboard.writeText(st.promo_code);msg("Copied "+st.promo_code+".",false,"streamerNotice");return}
+  if(action==="copy-link"){await navigator.clipboard.writeText(streamerReferralUrl(st));msg("Referral link copied.",false,"streamerNotice");return}
+  if(action==="toggle"){await streamerApi("update",{id:st.id,is_active:b.dataset.active==="true"});await loadStreamers();return}
+  if(action==="edit"){
+   const name=prompt("Streamer display name:",st.name);if(name===null)return;
+   const promo_code=prompt("Referral code:",st.promo_code);if(promo_code===null)return;
+   await streamerApi("update",{id:st.id,name,promo_code});await loadStreamers();return;
+  }
+  if(action==="account"){
+   const email=prompt("Email address for "+st.name+"'s streamer portal account:");if(!email)return;
+   const result=await streamerApi("create_account",{streamer_id:st.id,email:email.trim().toLowerCase()});
+   if(result.temporary_password)showStreamerCredentials("Streamer portal account created",email,result.temporary_password);
+   else msg("Existing account linked to "+st.name+".",false,"streamerNotice");
+   await loadStreamers();return;
+  }
+  if(action==="reset"){
+   if(!confirm("Generate a new temporary password for "+st.name+"?"))return;
+   const result=await streamerApi("reset_password",{streamer_id:st.id});
+   showStreamerCredentials("Streamer password reset",st.account_email,result.temporary_password);return;
+  }
+  if(action==="unlink"){
+   if(!confirm("Unlink the portal account for "+st.name+"? The Auth account itself will not be deleted."))return;
+   await streamerApi("unlink_account",{streamer_id:st.id});await loadStreamers();return;
+  }
+ }catch(err){msg(err.message,true,"streamerNotice")}
+ finally{b.disabled=false}
+});
 document.getElementById("streamerRefresh").onclick=loadStreamers;
-document.getElementById("streamerExport").onclick=()=>{const headers=["Date","Streamer","Promo code","Plan","Paid amount","Currency","Discount percent","Discount amount","Stripe checkout"];const byId=new Map(streamerData.map(st=>[st.id,st]));const rows=[headers,...streamerOrders.map(o=>[o.paid_at||o.created_at,byId.get(o.streamer_id)?.name||"",o.promo_code,o.plan,o.amount,o.currency,o.promo_discount_percent,o.promo_discount_amount,o.provider_order_id])];const csv=rows.map(r=>r.map(v=>'"'+String(v??"").replace(/"/g,'""')+'"').join(",")).join("\n");const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));a.download="robcheat-streamer-referrals.csv";a.click();URL.revokeObjectURL(a.href)};
+document.getElementById("streamerExport").onclick=()=>{
+ const headers=["Date","Streamer","Promo code","Plan","Paid amount","Currency","Discount percent","Discount amount","Stripe checkout"];
+ const byId=new Map(streamerData.map(st=>[st.id,st]));
+ const rows=[headers,...streamerOrders.map(o=>[o.paid_at||o.created_at,byId.get(o.streamer_id)?.name||"",o.promo_code,o.plan,o.amount,o.currency,o.promo_discount_percent,o.promo_discount_amount,o.provider_order_id])];
+ const csv=rows.map(r=>r.map(v=>'"'+String(v??"").replace(/"/g,'""')+'"').join(",")).join("\n");
+ const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));a.download="robcheat-streamer-referrals.csv";a.click();URL.revokeObjectURL(a.href);
+};
 async function loadFinanceSettings(){
  try{
   const r=await fetch(financeFn,{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+session.access_token,"apikey":"sb_publishable_C1Mv75fwRb3bA9gx6JqN7w_2c2CyJvF"},body:JSON.stringify({action:"get"})});
