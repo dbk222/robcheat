@@ -1,13 +1,4 @@
 (() => {
-  const productionHosts = new Set([
-    "robcheat.fun",
-    "www.robcheat.fun",
-    "robcheat.vercel.app",
-    "robcheat-antarrobert-2659.vercel.app",
-    "robcheat-git-main-antarrobert-2659.vercel.app"
-  ]);
-  if (productionHosts.has(location.hostname)) return;
-
   const run = async () => {
     // The route exists only on the isolated Stage 4 Preview deployment.
     const configResponse = await fetch("/api/streamer-config", { cache: "no-store" });
