@@ -46,7 +46,7 @@ create index if not exists streamer_referral_events_type_created_idx on public.s
 create index if not exists streamer_referral_events_attribution_id_idx on public.streamer_referral_events(attribution_id);
 create index if not exists streamer_referral_events_order_id_idx on public.streamer_referral_events(order_id);
 create index if not exists streamer_referral_events_session_idx on public.streamer_referral_events(provider_session_id);
-create index if not exists streamer_referral_events_type_session_uidx on public.streamer_referral_events(event_type,provider_session_id) where provider_session_id is not null;
+create unique index if not exists streamer_referral_events_type_session_uidx on public.streamer_referral_events(event_type,provider_session_id);
 create index if not exists orders_streamer_paid_idx on public.orders(streamer_id,paid_at desc) where status='paid';
 create index if not exists orders_referral_attribution_idx on public.orders(referral_attribution_id);
 
