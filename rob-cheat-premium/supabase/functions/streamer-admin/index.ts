@@ -70,7 +70,7 @@ Deno.serve(async (req) => {
       if (ids.length) {
         const { data: orderRows, error: orderError } = await admin
           .from("orders")
-          .select("id,streamer_id,plan,amount,currency,status,paid_at,created_at,promo_code,promo_discount_amount,promo_discount_percent,provider_order_id")
+          .select("id,streamer_id,plan,amount,refunded_amount,currency,status,paid_at,created_at,promo_code,promo_discount_amount,promo_discount_percent,provider_order_id")
           .in("streamer_id", ids).eq("status", "paid")
           .order("paid_at", { ascending: false }).limit(5000);
         if (orderError) throw orderError;
@@ -98,7 +98,7 @@ Deno.serve(async (req) => {
         if (!item) continue;
         item.paid_orders++;
         const currency = String(order.currency || "EUR").toUpperCase();
-        item.revenue_by_currency[currency] = Number(item.revenue_by_currency[currency] || 0) + Number(order.amount || 0);
+        item.revenue_by_currency[currency] = Number(item.revenue_by_currency[currency] || 0) + Math.max(0, Number(order.amount || 0) - Number(order.refunded_amount || 0));
         item.discounts += Number(order.promo_discount_amount || 0);
         if (!item.last_sale_at) item.last_sale_at = order.paid_at || order.created_at;
       }
@@ -109,7 +109,9 @@ Deno.serve(async (req) => {
         ...(stats.get(streamer.id) ?? {}),
       }));
       const recent = paidOrders.slice(0, 100).map((order) => ({
-        streamer_id: order.streamer_id, plan: order.plan, amount: order.amount,
+        streamer_id: order.streamer_id, plan: order.plan,
+        amount: Math.max(0, Number(order.amount || 0) - Number(order.refunded_amount || 0)),
+        refunded_amount: Number(order.refunded_amount || 0),
         currency: order.currency, paid_at: order.paid_at, promo_code: order.promo_code,
         promo_discount_amount: order.promo_discount_amount, provider_order_id: order.provider_order_id,
       }));
