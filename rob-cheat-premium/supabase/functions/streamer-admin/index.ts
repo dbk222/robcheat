@@ -75,10 +75,12 @@ Deno.serve(async (req) => {
           .order("paid_at", { ascending: false }).limit(5000);
         if (orderError) throw orderError;
         paidOrders = orderRows ?? [];
+        const since = new Date(Date.now() - 30 * 86400000).toISOString();
         const { data: eventRows, error: eventError } = await admin
           .from("streamer_referral_events")
           .select("streamer_id,event_type,created_at")
-          .in("streamer_id", ids).order("created_at", { ascending: false }).limit(10000);
+          .in("streamer_id", ids).gte("created_at", since)
+          .order("created_at", { ascending: false }).limit(10000);
         if (eventError) throw eventError;
         events = eventRows ?? [];
       }
@@ -115,7 +117,7 @@ Deno.serve(async (req) => {
         currency: order.currency, paid_at: order.paid_at, promo_code: order.promo_code,
         promo_discount_amount: order.promo_discount_amount, provider_order_id: order.provider_order_id,
       }));
-      return json({ streamers: enriched, recent_orders: recent });
+      return json({ streamers: enriched, recent_orders: recent, paid_orders_count: paidOrders.length });
     }
 
     if (action === "create") {
