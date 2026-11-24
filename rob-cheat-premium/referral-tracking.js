@@ -1,6 +1,6 @@
 (() => {
   const run = async () => {
-    // The route exists only on the isolated Stage 4 Preview deployment.
+    // Available on Production and Preview; only explicit referral links are recorded.
     const configResponse = await fetch("/api/streamer-config", { cache: "no-store" });
     if (!configResponse.ok) return;
     const ref = new URLSearchParams(location.search).get("ref");
