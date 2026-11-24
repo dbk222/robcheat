@@ -86,7 +86,7 @@ button,input{font:inherit}input{background:#090c0f;border:1px solid #35414c;colo
 <script>
 let sb=null, session=null, streamers=[], recentOrders=[];
 const el=(id)=>document.getElementById(id);
-const esc=(v)=>String(v??"").replace(/[&<>"']/g,(c)=>({"&":"&amp;","<":"&lt;",">":"&gt;","\\"":"&quot;","'":"&#39;"}[c]));
+const esc=(v)=>String(v??"").replace(/[&<>"']/g,(c)=>({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;"}[c]||"&quot;"));
 function notice(message,error){el("notice").textContent=message||"";el("notice").className="notice"+(error?" error":" success")}
 function money(value,currency){return new Intl.NumberFormat("en-IE",{style:"currency",currency:String(currency||"EUR").toUpperCase()}).format(Number(value||0))}
 async function api(action,payload){
