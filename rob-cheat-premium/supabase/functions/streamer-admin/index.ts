@@ -178,6 +178,10 @@ Deno.serve(async (req) => {
       let temporaryPassword: string | null = null;
       let createdAccount = false;
       if (existingUser) {
+        const { data: existingProfile, error: existingProfileError } = await admin.from("profiles")
+          .select("role").eq("id", existingUser.id).maybeSingle();
+        if (existingProfileError) throw existingProfileError;
+        if (existingProfile?.role === "admin") return json({ error: "Administrator accounts cannot be linked as streamer accounts." }, 409);
         userId = existingUser.id;
         const { error: profileUpsertError } = await admin.from("profiles").upsert(
           { id: userId, email, display_name: streamer.name, role: "customer" },
@@ -216,6 +220,89 @@ Deno.serve(async (req) => {
         return json({ error: "Could not link the account. Refresh and try again." }, 409);
       }
       return json({ streamer: linked, account_created: createdAccount, temporary_password: temporaryPassword });
+    }
+
+    if (action === "create_all_accounts") {
+      const { data: streamers, error: streamerListError } = await admin.from("streamers")
+        .select("id,name,promo_code,user_id").order("created_at", { ascending: true });
+      if (streamerListError) throw streamerListError;
+
+      const { data: existingUsers, error: usersError } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
+      if (usersError) throw usersError;
+      const userByEmail = new Map((existingUsers.users ?? []).map((user) => [(user.email ?? "").toLowerCase(), user]));
+      const usedUserIds = new Set((streamers ?? []).map((item) => item.user_id).filter(Boolean));
+      const credentials: Array<{name:string;promo_code:string;login_email:string;temporary_password:string}> = [];
+      const alreadyLinked: Array<{name:string;promo_code:string;login_email:string|null}> = [];
+      const failed: Array<{name:string;promo_code:string;reason:string}> = [];
+
+      for (const streamer of streamers ?? []) {
+        if (streamer.user_id) {
+          const { data: existingProfile } = await admin.from("profiles").select("email").eq("id", streamer.user_id).maybeSingle();
+          alreadyLinked.push({ name: streamer.name, promo_code: streamer.promo_code, login_email: existingProfile?.email ?? null });
+          continue;
+        }
+
+        // Generated login aliases are unique per streamer and are not mailboxes.
+        const loginEmail = "streamer." + streamer.promo_code.toLowerCase() + "@accounts.robcheat.fun";
+        let user = userByEmail.get(loginEmail);
+        let tempPassword: string | null = null;
+        let createdUser = false;
+
+        try {
+          if (user) {
+            const { data: profile } = await admin.from("profiles").select("role").eq("id", user.id).maybeSingle();
+            if (profile?.role === "admin" || usedUserIds.has(user.id)) {
+              failed.push({ name: streamer.name, promo_code: streamer.promo_code, reason: "Generated login alias is already linked or reserved." });
+              continue;
+            }
+          } else {
+            tempPassword = password();
+            const { data, error } = await admin.auth.admin.createUser({
+              email: loginEmail, password: tempPassword, email_confirm: true,
+              user_metadata: { display_name: streamer.name, account_type: "streamer" },
+            });
+            if (error || !data.user) throw error ?? new Error("Could not create Auth account.");
+            user = data.user;
+            createdUser = true;
+            userByEmail.set(loginEmail, user);
+          }
+
+          const { error: profileError } = await admin.from("profiles").upsert({
+            id: user.id, email: loginEmail, display_name: streamer.name, role: "customer",
+          }, { onConflict: "id", ignoreDuplicates: true });
+          if (profileError) throw profileError;
+
+          const { data: linked, error: linkError } = await admin.from("streamers").update({
+            user_id: user.id, updated_at: new Date().toISOString(),
+          }).eq("id", streamer.id).is("user_id", null).select("id").maybeSingle();
+          if (linkError || !linked) throw linkError ?? new Error("Could not link the new Auth account.");
+
+          usedUserIds.add(user.id);
+          if (tempPassword) {
+            credentials.push({ name: streamer.name, promo_code: streamer.promo_code, login_email: loginEmail, temporary_password: tempPassword });
+          } else {
+            alreadyLinked.push({ name: streamer.name, promo_code: streamer.promo_code, login_email: loginEmail });
+          }
+        } catch (error) {
+          if (createdUser && user?.id) {
+            await admin.auth.admin.deleteUser(user.id);
+            userByEmail.delete(loginEmail);
+          }
+          failed.push({
+            name: streamer.name, promo_code: streamer.promo_code,
+            reason: error instanceof Error ? error.message : "Could not create streamer account.",
+          });
+        }
+      }
+
+      return json({
+        created: credentials.length,
+        already_linked: alreadyLinked,
+        failed,
+        credentials,
+        login_alias_domain: "accounts.robcheat.fun",
+        note: "Generated login aliases are credentials only, not monitored email inboxes. Password resets are handled from the admin panel.",
+      });
     }
 
     if (action === "reset_password") {
