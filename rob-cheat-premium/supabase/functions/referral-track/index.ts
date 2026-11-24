@@ -42,7 +42,7 @@ Deno.serve(async (req) => {
 
   const { data: attribution, error: attributionError } = await admin.from("referral_attributions").insert({
     token_hash: tokenHash, streamer_id: streamer.id, visitor_id: visitorId,
-    promo_code: streamer.promo_code, source, page_path,
+    promo_code: streamer.promo_code, source, page_path: pagePath,
     created_at: createdAt.toISOString(), expires_at: expiresAt.toISOString(),
   }).select("id").single();
   if (attributionError) return json({ error: "Could not save referral attribution." }, 500);
@@ -50,7 +50,7 @@ Deno.serve(async (req) => {
   const { error: eventError } = await admin.from("streamer_referral_events").insert({
     streamer_id: streamer.id, event_type: "click", visitor_id: visitorId,
     promo_code: streamer.promo_code, attribution_source: "referral_link",
-    attribution_id: attribution.id, metadata: { source, page_path },
+    attribution_id: attribution.id, metadata: { source, page_path: pagePath },
   });
   if (eventError) {
     await admin.from("referral_attributions").delete().eq("id", attribution.id);
