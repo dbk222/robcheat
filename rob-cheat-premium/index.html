@@ -255,17 +255,23 @@ footer{padding:58px 0 28px;border-top:1px solid var(--line);color:var(--quiet);f
 async function checkout(n,p,t){
  const plans={Daily:"day",Weekly:"week",Monthly:"month",Lifetime:"lifetime"};
  const plan=plans[n];if(!plan)return toast("Unknown plan.");
+ const discountInput=document.getElementById("discountCode");
+ const typedPromoCode=(discountInput?.value||"").trim().toUpperCase();
+ const promoCode=typedPromoCode||(sessionStorage.getItem("robcheat_pending_discount_code")||"").trim().toUpperCase();
  const {data:{session},error}=await sb.auth.getSession();
- if(error||!session){location.href="account.html?next=checkout&plan="+encodeURIComponent(plan);return}
+ if(error||!session){
+  if(typedPromoCode)sessionStorage.setItem("robcheat_pending_discount_code",typedPromoCode);
+  location.href="account.html?next=checkout&plan="+encodeURIComponent(plan);return
+ }
  const buttons=[...document.querySelectorAll("#plans button")];buttons.forEach(b=>b.disabled=true);
  if(location.hostname.endsWith(".vercel.app")){toast("Preview environment — payments are disabled.");buttons.forEach(b=>b.disabled=false);return;}
  toast("Connecting securely to Stripe…");
  try{
   const referralToken=localStorage.getItem("robcheat_referral_token")||"";
-  const promoCode=(document.getElementById("discountCode")?.value||"").trim().toUpperCase();
   const response=await fetch("https://rzbvtzeqrcfutfafaamm.supabase.co/functions/v1/create-checkout",{method:"POST",headers:{ "Content-Type":"application/json","apikey":"sb_publishable_C1Mv75fwRb3bA9gx6JqN7w_2c2CyJvF","Authorization":"Bearer "+session.access_token},body:JSON.stringify({plan,promo_code:promoCode,referral_token:referralToken})});
   const data=await response.json();
   if(!response.ok||!data.url)throw new Error(data.error||data.message||"Checkout could not be created.");
+  sessionStorage.removeItem("robcheat_pending_discount_code");
   location.href=data.url;
  }catch(err){toast(err.message||"Checkout connection failed.");buttons.forEach(b=>b.disabled=false)}
 }
