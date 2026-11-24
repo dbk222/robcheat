@@ -8,6 +8,7 @@
     // Preserve the referred code immediately. The checkout can use it as a
     // safe discount fallback if the attribution token request is still pending.
     localStorage.setItem("robcheat_referral_code", promoCode);
+    localStorage.setItem("robcheat_referral_code_expires_at", new Date(Date.now() + 30 * 86400000).toISOString());
     localStorage.removeItem("robcheat_referral_token");
     localStorage.removeItem("robcheat_referral_expires_at");
 
