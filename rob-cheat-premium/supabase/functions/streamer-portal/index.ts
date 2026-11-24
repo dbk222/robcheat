@@ -39,7 +39,7 @@ Deno.serve(async (req) => {
       .eq("streamer_id", streamer.id).gte("created_at", since)
       .order("created_at", { ascending: false }).range(0, 999),
     admin.from("orders")
-      .select("id,plan,amount,currency,status,paid_at,created_at,promo_code,promo_discount_amount", { count: "exact" })
+      .select("id,plan,amount,refunded_amount,currency,status,paid_at,created_at,promo_code,promo_discount_amount", { count: "exact" })
       .eq("streamer_id", streamer.id).eq("status", "paid")
       .order("paid_at", { ascending: false }).range(0, 999),
   ]);
@@ -53,7 +53,7 @@ Deno.serve(async (req) => {
   let discounts = 0;
   for (const order of orderRows) {
     const currency = String(order.currency || "EUR").toUpperCase();
-    revenue[currency] = Number(revenue[currency] || 0) + Number(order.amount || 0);
+    revenue[currency] = Number(revenue[currency] || 0) + Math.max(0, Number(order.amount || 0) - Number(order.refunded_amount || 0));
     discounts += Number(order.promo_discount_amount || 0);
   }
 
@@ -74,7 +74,8 @@ Deno.serve(async (req) => {
     daily.set(key, row);
   }
   const recentOrders = orderRows.slice(0, 50).map((order) => ({
-    plan: order.plan, amount: order.amount, currency: order.currency,
+    plan: order.plan, amount: Math.max(0, Number(order.amount || 0) - Number(order.refunded_amount || 0)),
+    refunded_amount: Number(order.refunded_amount || 0), currency: order.currency,
     paid_at: order.paid_at, promo_code: order.promo_code, discount: order.promo_discount_amount,
   }));
 
