@@ -1,0 +1,28 @@
+-- STAGING ONLY demo roster. No Auth accounts or production records are created here.
+insert into public.streamers (name, promo_code) values
+('! davidd','DAVIDD'),
+('Escobar','ESCOBAR'),
+('Inyxxx','INYXXX'),
+('27albert','27ALBERT'),
+('Adi','ADI'),
+('ALBERTO','ALBERTO'),
+('Damian | 22194','DAMIAN'),
+('David','DAVID'),
+('FLAME','FLAME'),
+('G1ppsyHoe','G1PPSYHOE'),
+('Must','MUST'),
+('NotPhade','NOTPHADE'),
+('ROBICA','ROBICA'),
+('Schiopu','SCHIOPU'),
+('Travis','TRAVIS'),
+('Zeus','ZEUS'),
+('Pistilsi','PISTILSI'),
+('crypto','CRYPTO'),
+('enigma','ENIGMA'),
+('knz','KNZ'),
+('mini#DepanatorPC','MINIDEPANATOR'),
+('niko','NIKO'),
+('VOLTA','VOLTA'),
+('wyntex','WNYTEX'),
+('Durbala','DURBALA')
+on conflict (promo_code) do nothing;
