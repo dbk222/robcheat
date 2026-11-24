@@ -75,10 +75,12 @@ Deno.serve(async (req) => {
           .order("paid_at", { ascending: false }).limit(5000);
         if (orderError) throw orderError;
         paidOrders = orderRows ?? [];
+        const since = new Date(Date.now() - 30 * 86400000).toISOString();
         const { data: eventRows, error: eventError } = await admin
           .from("streamer_referral_events")
           .select("streamer_id,event_type,created_at")
-          .in("streamer_id", ids).order("created_at", { ascending: false }).limit(10000);
+          .in("streamer_id", ids).gte("created_at", since)
+          .order("created_at", { ascending: false }).limit(10000);
         if (eventError) throw eventError;
         events = eventRows ?? [];
       }
@@ -115,7 +117,7 @@ Deno.serve(async (req) => {
         currency: order.currency, paid_at: order.paid_at, promo_code: order.promo_code,
         promo_discount_amount: order.promo_discount_amount, provider_order_id: order.provider_order_id,
       }));
-      return json({ streamers: enriched, recent_orders: recent });
+      return json({ streamers: enriched, recent_orders: recent, paid_orders_count: paidOrders.length });
     }
 
     if (action === "create") {
@@ -179,6 +181,7 @@ Deno.serve(async (req) => {
       let userId: string;
       let temporaryPassword: string | null = null;
       let createdAccount = false;
+      const internalDisplayName = "ROB CHEAT Streamer " + streamer.promo_code + " [" + streamer.id.slice(0, 8) + "]";
       if (existingUser) {
         const { data: existingProfile, error: existingProfileError } = await admin.from("profiles")
           .select("role").eq("id", existingUser.id).maybeSingle();
@@ -186,7 +189,7 @@ Deno.serve(async (req) => {
         if (existingProfile?.role === "admin") return json({ error: "Administrator accounts cannot be linked as streamer accounts." }, 409);
         userId = existingUser.id;
         const { error: profileUpsertError } = await admin.from("profiles").upsert(
-          { id: userId, email, display_name: streamer.name, role: "customer" },
+          { id: userId, email, display_name: internalDisplayName, role: "customer" },
           { onConflict: "id", ignoreDuplicates: true },
         );
         if (profileUpsertError) throw profileUpsertError;
@@ -194,13 +197,13 @@ Deno.serve(async (req) => {
         temporaryPassword = password();
         const { data, error } = await admin.auth.admin.createUser({
           email, password: temporaryPassword, email_confirm: true,
-          user_metadata: { display_name: streamer.name },
+          user_metadata: { display_name: internalDisplayName },
         });
         if (error || !data.user) throw error ?? new Error("Could not create Auth user.");
         userId = data.user.id;
         createdAccount = true;
         const { error: profileInsertError } = await admin.from("profiles").upsert({
-          id: userId, email, display_name: streamer.name, role: "customer",
+          id: userId, email, display_name: internalDisplayName, role: "customer",
         }, { onConflict: "id", ignoreDuplicates: true });
         if (profileInsertError) {
           await admin.auth.admin.deleteUser(userId);
@@ -249,6 +252,7 @@ Deno.serve(async (req) => {
         let user = userByEmail.get(loginEmail);
         let tempPassword: string | null = null;
         let createdUser = false;
+        const internalDisplayName = "ROB CHEAT Streamer " + streamer.promo_code + " [" + streamer.id.slice(0, 8) + "]";
 
         try {
           if (user) {
@@ -261,7 +265,7 @@ Deno.serve(async (req) => {
             tempPassword = password();
             const { data, error } = await admin.auth.admin.createUser({
               email: loginEmail, password: tempPassword, email_confirm: true,
-              user_metadata: { display_name: streamer.name, account_type: "streamer" },
+              user_metadata: { display_name: internalDisplayName, account_type: "streamer" },
             });
             if (error || !data.user) throw error ?? new Error("Could not create Auth account.");
             user = data.user;
@@ -270,7 +274,7 @@ Deno.serve(async (req) => {
           }
 
           const { error: profileError } = await admin.from("profiles").upsert({
-            id: user.id, email: loginEmail, display_name: streamer.name, role: "customer",
+            id: user.id, email: loginEmail, display_name: internalDisplayName, role: "customer",
           }, { onConflict: "id", ignoreDuplicates: true });
           if (profileError) throw profileError;
 
