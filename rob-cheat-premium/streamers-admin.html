@@ -28,6 +28,17 @@ button,input{font:inherit}input{background:#090c0f;border:1px solid #35414c;colo
       <button class="btn primary" id="loginButton" type="submit">Sign in to staging</button>
     </form>
     <div id="loginNotice" class="notice"></div>
+    <button class="btn" id="showSetup" type="button" style="margin-top:12px">First time? Create staging login</button>
+    <div id="setupBox" class="hidden" style="margin-top:16px;border-top:1px solid var(--line);padding-top:16px">
+      <strong>Create a staging account</strong>
+      <p class="notice">This registers a normal customer account first. Administrator permission is granted separately by the project owner.</p>
+      <form id="setupForm" style="display:grid;gap:10px;margin-top:10px">
+        <label>Email<input id="setupEmail" type="email" required autocomplete="email"></label>
+        <label>Password<input id="setupPassword" type="password" required minlength="12" autocomplete="new-password"></label>
+        <button class="btn" id="setupButton" type="submit">Create staging account</button>
+      </form>
+      <div id="setupNotice" class="notice"></div>
+    </div>
   </section>
 </div>
 
@@ -133,6 +144,19 @@ async function showApp(){
   el("login").classList.add("hidden");el("app").classList.remove("hidden");
   try{await refresh()}catch(error){notice(error.message,true)}
 }
+el("showSetup").onclick=()=>el("setupBox").classList.toggle("hidden");
+el("setupForm").onsubmit=async(e)=>{
+  e.preventDefault();el("setupButton").disabled=true;el("setupNotice").textContent="Creating staging account…";
+  try{
+    const email=el("setupEmail").value.trim().toLowerCase(),password=el("setupPassword").value;
+    const result=await sb.auth.signUp({email,password,options:{data:{display_name:"ROB CHEAT Staging Admin"}}});
+    if(result.error)throw result.error;
+    el("setupNotice").textContent=result.data.session
+      ?"Account created. Send this email to the project owner so administrator access can be enabled: "+email
+      :"Account created. Check the inbox for "+email+" to confirm the address, then send the email to the project owner so administrator access can be enabled.";
+  }catch(error){el("setupNotice").textContent=error.message||"Account setup failed.";el("setupNotice").classList.add("error")}
+  finally{el("setupButton").disabled=false}
+};
 el("loginForm").onsubmit=async(e)=>{
   e.preventDefault();el("loginButton").disabled=true;el("loginNotice").textContent="Signing in…";
   try{const result=await sb.auth.signInWithPassword({email:el("loginEmail").value.trim(),password:el("loginPassword").value});if(result.error)throw result.error;session=result.data.session;await showApp()}
