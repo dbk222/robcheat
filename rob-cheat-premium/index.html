@@ -252,9 +252,11 @@ async function checkout(n,p,t){
  const {data:{session},error}=await sb.auth.getSession();
  if(error||!session){location.href="account.html?next=checkout&plan="+encodeURIComponent(plan);return}
  const buttons=[...document.querySelectorAll("#plans button")];buttons.forEach(b=>b.disabled=true);
+ if(location.hostname.endsWith(".vercel.app")){toast("Preview environment — payments are disabled.");buttons.forEach(b=>b.disabled=false);return;}
  toast("Connecting securely to Stripe…");
  try{
-  const response=await fetch("https://rzbvtzeqrcfutfafaamm.supabase.co/functions/v1/create-checkout",{method:"POST",headers:{ "Content-Type":"application/json","apikey":"sb_publishable_C1Mv75fwRb3bA9gx6JqN7w_2c2CyJvF","Authorization":"Bearer "+session.access_token},body:JSON.stringify({plan})});
+  const referralToken=localStorage.getItem("robcheat_referral_token")||"";
+  const response=await fetch("https://rzbvtzeqrcfutfafaamm.supabase.co/functions/v1/create-checkout",{method:"POST",headers:{ "Content-Type":"application/json","apikey":"sb_publishable_C1Mv75fwRb3bA9gx6JqN7w_2c2CyJvF","Authorization":"Bearer "+session.access_token},body:JSON.stringify({plan,referral_token:referralToken})});
   const data=await response.json();
   if(!response.ok||!data.url)throw new Error(data.error||data.message||"Checkout could not be created.");
   location.href=data.url;
@@ -276,4 +278,5 @@ document.getElementById('cookieDecline').addEventListener('click',()=>choose('de
 })();
 </script>
 <!-- Streamer promotion UI held back until launch approval. -->
+  <script src="referral-tracking.js" defer></script>
 </body></html>

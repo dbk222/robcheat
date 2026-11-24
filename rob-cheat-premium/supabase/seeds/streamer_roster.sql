@@ -1,0 +1,28 @@
+-- Initial creator roster. Safe to re-run: existing promo codes are not overwritten.
+insert into public.streamers (name, promo_code, is_active) values
+('! davidd','DAVIDD',true),
+('Escobar','ESCOBAR',true),
+('Inyxxx','INYXXX',true),
+('27albert','27ALBERT',true),
+('Adi','ADI',true),
+('ALBERTO','ALBERTO',true),
+('Damian | 22194','DAMIAN',true),
+('David','DAVID',true),
+('FLAME','FLAME',true),
+('G1ppsyHoe','G1PPSYHOE',true),
+('Must','MUST',true),
+('NotPhade','NOTPHADE',true),
+('ROBICA','ROBICA',true),
+('Schiopu','SCHIOPU',true),
+('Travis','TRAVIS',true),
+('Zeus','ZEUS',true),
+('Pistilsi','PISTILSI',true),
+('crypto','CRYPTO',true),
+('enigma','ENIGMA',true),
+('knz','KNZ',true),
+('mini#DepanatorPC','MINIDEPANATOR',true),
+('niko','NIKO',true),
+('VOLTA','VOLTA',true),
+('wyntex','WNYTEX',true),
+('Durbala','DURBALA',true)
+on conflict (promo_code) do nothing;
