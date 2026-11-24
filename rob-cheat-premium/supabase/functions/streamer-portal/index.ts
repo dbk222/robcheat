@@ -33,19 +33,20 @@ Deno.serve(async (req) => {
   if (!streamer || !streamer.is_active) return json({ error: "No active streamer account is linked to this login." }, 403);
 
   const since = new Date(Date.now() - 30 * 86400000).toISOString();
-  const [{ data: events, error: eventsError }, { data: orders, error: ordersError }] = await Promise.all([
+  const [eventsResult, ordersResult] = await Promise.all([
     admin.from("streamer_referral_events")
-      .select("event_type,created_at").eq("streamer_id", streamer.id).gte("created_at", since)
-      .order("created_at", { ascending: false }).limit(5000),
+      .select("id,event_type,created_at", { count: "exact" })
+      .eq("streamer_id", streamer.id).gte("created_at", since)
+      .order("created_at", { ascending: false }).range(0, 999),
     admin.from("orders")
-      .select("id,plan,amount,currency,status,paid_at,created_at,promo_code,promo_discount_amount")
+      .select("id,plan,amount,currency,status,paid_at,created_at,promo_code,promo_discount_amount", { count: "exact" })
       .eq("streamer_id", streamer.id).eq("status", "paid")
-      .order("paid_at", { ascending: false }).limit(100),
+      .order("paid_at", { ascending: false }).range(0, 999),
   ]);
-  if (eventsError || ordersError) return json({ error: "Could not load your referral activity." }, 500);
+  if (eventsResult.error || ordersResult.error) return json({ error: "Could not load your referral activity." }, 500);
 
-  const eventRows = events ?? [];
-  const orderRows = orders ?? [];
+  const eventRows = eventsResult.data ?? [];
+  const orderRows = ordersResult.data ?? [];
   const clicks = eventRows.filter((event) => event.event_type === "click").length;
   const checkouts = eventRows.filter((event) => event.event_type === "checkout_started").length;
   const revenue: Record<string, number> = {};
@@ -55,6 +56,7 @@ Deno.serve(async (req) => {
     revenue[currency] = Number(revenue[currency] || 0) + Number(order.amount || 0);
     discounts += Number(order.promo_discount_amount || 0);
   }
+
   const daily = new Map<string, { clicks: number; checkouts: number; purchases: number }>();
   const dayKey = (value: string) => new Date(value).toISOString().slice(0, 10);
   for (const event of eventRows) {
@@ -71,10 +73,9 @@ Deno.serve(async (req) => {
     row.purchases++;
     daily.set(key, row);
   }
-  const recentOrders = orderRows.slice(0, 25).map((order) => ({
+  const recentOrders = orderRows.slice(0, 50).map((order) => ({
     plan: order.plan, amount: order.amount, currency: order.currency,
-    paid_at: order.paid_at, promo_code: order.promo_code,
-    discount: order.promo_discount_amount,
+    paid_at: order.paid_at, promo_code: order.promo_code, discount: order.promo_discount_amount,
   }));
 
   return json({
