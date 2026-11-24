@@ -116,6 +116,40 @@ document.getElementById("streamerExport").onclick=()=>{
  const csv=rows.map(r=>r.map(v=>'"'+String(v??"").replace(/"/g,'""')+'"').join(",")).join("\n");
  const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));a.download="robcheat-streamer-referrals.csv";a.click();URL.revokeObjectURL(a.href);
 };
+let streamerCredentialRows=[];
+function renderStreamerCredentials(result){
+ const box=document.getElementById("streamerCredentials");
+ if(!box)return;
+ streamerCredentialRows=result.credentials||[];
+ box.classList.remove("hidden");
+ box.className="notice";
+ const failed=(result.failed||[]).length,linked=(result.already_linked||[]).length,created=streamerCredentialRows.length;
+ box.innerHTML='<strong>Streamer account provisioning complete</strong><br>Created: '+created+
+  ' · Already linked: '+linked+' · Failed: '+failed+
+  '<br><span class="notice">Login aliases are not monitored inboxes. Temporary passwords are shown only in this result and are not saved. Use the Admin Panel to reset a password later.</span>'+
+  '<div class="actions" style="margin-top:12px"><button class="btn primary" id="downloadStreamerCredentials" type="button" '+(created?'':'disabled')+'>Download login credentials CSV</button><button class="btn" id="hideStreamerCredentials" type="button">Hide credentials</button></div>'+
+  (created?'<div class="tablewrap"><table style="min-width:680px"><thead><tr><th>Streamer</th><th>Promo code</th><th>Login alias</th><th>Temporary password</th></tr></thead><tbody>'+
+   streamerCredentialRows.map(row=>'<tr><td>'+esc(row.name)+'</td><td><code>'+esc(row.promo_code)+'</code></td><td><code>'+esc(row.login_email)+'</code></td><td><code>'+esc(row.temporary_password)+'</code></td></tr>').join('')+
+   '</tbody></table></div>':'');
+ document.getElementById("downloadStreamerCredentials").onclick=()=>{
+  const rows=[["Streamer","Promo code","Login alias","Temporary password"],...streamerCredentialRows.map(x=>[x.name,x.promo_code,x.login_email,x.temporary_password])];
+  const csv=rows.map(row=>row.map(value=>'"'+String(value??"").replace(/"/g,'""')+'"').join(",")).join("\\n");
+  const link=document.createElement("a");link.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));link.download="robcheat-streamer-credentials.csv";link.click();URL.revokeObjectURL(link.href);
+ };
+ document.getElementById("hideStreamerCredentials").onclick=()=>{box.classList.add("hidden");box.textContent="";streamerCredentialRows=[]};
+}
+document.getElementById("streamerCreateAllAccounts").onclick=async()=>{
+ if(!confirm("Create portal login accounts for every streamer without a linked account? Each account gets a generated login alias and a one-time temporary password. The aliases are not monitored email inboxes. Continue?"))return;
+ const button=document.getElementById("streamerCreateAllAccounts");button.disabled=true;
+ msg("Creating streamer login accounts…",false,"streamerNotice");
+ try{
+  const result=await streamerApi("create_all_accounts");
+  renderStreamerCredentials(result);
+  await loadStreamers();
+  msg("Account setup finished. Download and securely save the credentials CSV.",false,"streamerNotice");
+ }catch(error){msg(error.message,true,"streamerNotice")}
+ finally{button.disabled=false}
+};
 async function loadFinanceSettings(){
  try{
   const r=await fetch(financeFn,{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+session.access_token,"apikey":"sb_publishable_C1Mv75fwRb3bA9gx6JqN7w_2c2CyJvF"},body:JSON.stringify({action:"get"})});
