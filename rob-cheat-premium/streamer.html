@@ -31,6 +31,7 @@
   </div>
   <section class="panel"><h2>Referral activity · 30 days</h2><div id="bars" class="barlist"><div class="notice">Loading activity…</div></div></section>
   <section class="panel"><h2>Referred purchases</h2><div class="tablewrap"><table><thead><tr><th>Paid date</th><th>Plan</th><th>Amount</th><th>Promo code</th><th>Discount</th></tr></thead><tbody id="sales"><tr><td colspan="5">Loading purchases…</td></tr></tbody></table></div><div id="revenueNote" class="notice"></div></section>
+  <section class="panel"><h2>Account security</h2><p class="notice">Change your temporary password after your first sign-in, and keep your portal credentials private.</p><form id="passwordForm" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:14px"><label>New password<input id="newPassword" type="password" autocomplete="new-password" minlength="12" required></label><label>Confirm new password<input id="confirmPassword" type="password" autocomplete="new-password" minlength="12" required></label><div style="grid-column:1/-1;display:flex;gap:12px;align-items:center;flex-wrap:wrap"><button class="btn" id="savePassword" type="submit">Update password</button><span class="notice" id="passwordNotice"></span></div></form></section>
 </div>
 <script>
 let sb=null,session=null,portalData=null;
@@ -78,6 +79,21 @@ el("loginForm").onsubmit=async(e)=>{
  try{const result=await sb.auth.signInWithPassword({email:el("email").value.trim(),password:el("password").value});if(result.error)throw result.error;session=result.data.session;await showApp()}
  catch(error){el("loginNotice").textContent=error.message||"Sign-in failed.";el("loginNotice").classList.add("error")}
  finally{el("loginButton").disabled=false}
+};
+el("passwordForm").onsubmit=async(e)=>{
+ e.preventDefault();
+ const password=el("newPassword").value,confirmation=el("confirmPassword").value;
+ el("passwordNotice").textContent="";
+ if(password.length<12){el("passwordNotice").textContent="Use at least 12 characters.";return}
+ if(password!==confirmation){el("passwordNotice").textContent="The passwords do not match.";return}
+ const button=el("savePassword");button.disabled=true;
+ try{
+  const result=await sb.auth.updateUser({password});
+  if(result.error)throw result.error;
+  el("passwordForm").reset();
+  el("passwordNotice").textContent="Password updated successfully.";
+ }catch(error){el("passwordNotice").textContent=error.message||"Could not update password."}
+ finally{button.disabled=false}
 };
 el("logout").onclick=async()=>{await sb.auth.signOut();location.reload()};
 el("copyLink").onclick=async()=>{await navigator.clipboard.writeText(el("referralLink").textContent);el("linkNotice").textContent="Referral link copied."};
