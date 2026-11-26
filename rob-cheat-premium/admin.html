@@ -33,7 +33,7 @@ label{display:grid;gap:7px;color:var(--muted);font-size:11px}
 .quick-card{display:grid;gap:8px;color:var(--text);text-decoration:none}
 .quick-card b{font-size:14px}.quick-card span{font-size:11px;color:var(--muted);line-height:1.6}
 .release-placeholder h2{margin:18px 0 12px}.release-placeholder p{font-size:12px;line-height:1.7;color:var(--muted);max-width:780px}
-#notice:empty{display:none}
+#notice:empty,#licenseNotice:empty{display:none}
 #stripeFrom,#stripeTo{min-width:150px}
 @media(max-width:700px){.stats,.quick-grid,.form{grid-template-columns:1fr}.row>*{max-width:100%}.tablewrap{margin-inline:-3px}}
 </style><style>#page-profit .stats{grid-template-columns:repeat(4,minmax(0,1fr))}#page-streamers .stats{grid-template-columns:repeat(3,minmax(0,1fr))}#streamerForm .form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}@media(max-width:700px){#page-profit .stats,#page-streamers .stats,#splitSettingsForm .form-grid,#streamerForm .form-grid{grid-template-columns:1fr}}</style></head><body>
@@ -152,7 +152,7 @@ const date=x=>{if(x.expires_at)return new Date(x.expires_at).toLocaleDateString(
 function msg(t,err=false,target='notice'){const e=document.getElementById(target);if(!e)return;e.textContent=t;e.className='notice'+(err?' error':'')}
 async function api(action,body={}){const r=await fetch(fn,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+session.access_token,'apikey':'sb_publishable_C1Mv75fwRb3bA9gx6JqN7w_2c2CyJvF'},body:JSON.stringify({action,...body})});let j=await r.json();if(!r.ok)throw Error(j.error||'Request failed');return j}
 async function init(){const x=await sb.auth.getSession();session=x.data.session;if(!session){location.href='account.html?next=admin';return}const u=session.user;const p=await sb.from('profiles').select('role,email').eq('id',u.id).single();if(p.data?.role!=='admin'){document.body.innerHTML='<div style="padding:50px;text-align:center">Admin access required. <a href="dashboard.html">Return to dashboard</a></div>';return}document.getElementById('adminEmail').textContent=u.email;await Promise.allSettled([refresh(),loadOrders(),loadStreamers(),loadFinanceSettings()]);setStripeRange("30");setSplitRange("30") }
-async function refresh(){const target=document.getElementById("page-licenses")?.classList.contains("active")?"licenseNotice":"notice";try{licenses=[];let offset=0,count=0;do{const d=await api("list",{limit:100,offset});licenses.push(...(d.licenses||[]));count=d.count||0;offset+=d.limit||100;}while(offset<count);licensePage=1;render();msg("Loaded "+licenses.length+" licenses across all pages.",false,target)}catch(e){msg(e.message,true,target)}}
+async function refresh(showLoadedMessage=true){const target=document.getElementById("page-licenses")?.classList.contains("active")?"licenseNotice":"notice";try{licenses=[];let offset=0,count=0;do{const d=await api("list",{limit:100,offset});licenses.push(...(d.licenses||[]));count=d.count||0;offset+=d.limit||100;}while(offset<count);licensePage=1;render();if(showLoadedMessage)msg("Loaded "+licenses.length+" licenses across all pages.",false,target)}catch(e){msg(e.message,true,target)}}
 function render(){
  const total=document.getElementById("total"),active=document.getElementById("active"),available=document.getElementById("available");
  total.textContent=licenses.length;active.textContent=licenses.filter(x=>statusOf(x)==="active").length;available.textContent=licenses.filter(x=>statusOf(x)==="available").length;
@@ -176,10 +176,10 @@ function render(){
  ["licensePrev","licensePrevTop"].forEach(id=>document.getElementById(id).disabled=licensePage<=1);["licenseNext","licenseNextTop"].forEach(id=>document.getElementById(id).disabled=licensePage>=pages);
 }
 document.getElementById("rows").addEventListener("click",async e=>{const b=e.target.closest("button[data-action]");if(!b||b.disabled)return;const id=b.dataset.id;b.disabled=true;try{switch(b.dataset.action){case "assign":await assignLicense(id);break;case "status":await setLicenseStatus(id,b.dataset.status);break;case "reset":await resetLicenseHwid(id);break;case "history":await showLicenseHistory(id);break;case "revoke":await revokeLicense(id);break;}}finally{if(b.isConnected)b.disabled=false;}});
-document.getElementById('createForm').onsubmit=async e=>{e.preventDefault();try{let owner=null;const email=document.getElementById('ownerEmail').value.trim();if(email){const q=await api('find_user',{email});if(!q.user)throw Error('No ROB CHEAT account found for that email. Ask the customer to register first.');owner=q.user.id}const d=await api('create',{plan:document.getElementById('plan').value,max_devices:Number(document.getElementById('max').value),owner_id:owner,notes:document.getElementById('notes').value});document.getElementById('newKey').innerHTML='<div class="notice">License generated. Copy this key now (it is shown only once): <strong class="key">'+esc(d.license_key)+'</strong> <button class="btn" onclick="navigator.clipboard.writeText(\''+d.license_key+'\')">Copy</button></div>';msg('License created',false,'licenseNotice');await refresh()}catch(e){msg(e.message,true,'licenseNotice')}};
+document.getElementById('createForm').onsubmit=async e=>{e.preventDefault();try{let owner=null;const email=document.getElementById('ownerEmail').value.trim();if(email){const q=await api('find_user',{email});if(!q.user)throw Error('No ROB CHEAT account found for that email. Ask the customer to register first.');owner=q.user.id}const d=await api('create',{plan:document.getElementById('plan').value,max_devices:Number(document.getElementById('max').value),owner_id:owner,notes:document.getElementById('notes').value});document.getElementById('newKey').innerHTML='<div class="notice">License generated. Copy this key now (it is shown only once): <strong class="key">'+esc(d.license_key)+'</strong> <button class="btn" onclick="navigator.clipboard.writeText(\''+d.license_key+'\')">Copy</button></div>';msg('License created',false,'licenseNotice');await refresh(false)}catch(e){msg(e.message,true,'licenseNotice')}};
 async function revokeLicense(id){
  if(!confirm("Permanently revoke this license? Its desktop key will be disabled and this action cannot be undone."))return;
- try{const d=await api("revoke",{id});msg(d.already_revoked?"This license was already revoked.":d.key_revoked?"License permanently revoked and desktop key disabled.":"License revoked.",false,"licenseNotice");await refresh()}
+ try{const d=await api("revoke",{id});msg(d.already_revoked?"This license was already revoked.":d.key_revoked?"License permanently revoked and desktop key disabled.":"License revoked.",false,"licenseNotice");await refresh(false)}
  catch(e){msg(e.message,true,"licenseNotice")}
 }
 async function assignLicense(id){
@@ -191,7 +191,7 @@ async function assignLicense(id){
   if(!q.user)throw Error("Account not found.");
   const result=await api("update",{id,owner_id:q.user.id});
   msg(result.key_regenerated?"License assigned. A replacement key is now available in the member dashboard.":"License assigned and desktop key ownership synced.",false,"licenseNotice");
-  await refresh();
+  await refresh(false);
  }catch(e){msg(e.message,true,"licenseNotice")}
 }
 async function setLicenseStatus(id,nextStatus){
@@ -199,7 +199,7 @@ async function setLicenseStatus(id,nextStatus){
  try{
   const result=await api("set_status",{id,status:nextStatus});
   msg(nextStatus==="suspended"?"License suspended. The desktop key is now blocked; its HWID binding is retained.":(result.status==="available"?"License reactivated and restored to Available.":"License reactivated and restored to its previous status."),false,"licenseNotice");
-  await refresh();
+  await refresh(false);
  }catch(e){msg(e.message,true,"licenseNotice")}
 }
 async function resetLicenseHwid(id){
@@ -208,7 +208,7 @@ async function resetLicenseHwid(id){
   const result=await api("reset_hwid",{id});
   const changed=Boolean(result.legacy_hwid_cleared)||Number(result.released_device_count)>0;
   msg(changed?"HWID released. The same key can now be activated with a new HWID.":"No active HWID binding was found; this key was already free.",false,"licenseNotice");
-  await refresh();
+  await refresh(false);
  }catch(e){msg(e.message,true,"licenseNotice")}
 }
 async function showLicenseHistory(id){
