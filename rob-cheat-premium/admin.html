@@ -58,9 +58,9 @@ label{display:grid;gap:7px;color:var(--muted);font-size:11px}
   </div>
 </section>
 <section class="page" id="page-licenses">
-  <div class="heading"><div><div class="eyebrow">ACCESS CONTROL</div><h1>License <em>management.</em></h1><p>Create, assign and manage existing license records.</p></div></div>
+  <div class="heading"><div><div class="eyebrow">ACCESS CONTROL</div><h1>License <em>management.</em></h1><p>Create, assign and manage existing license records.</p></div></div><div id="licenseNotice" class="notice" aria-live="polite"></div>
   <section class="panel"><h2>Create license</h2><form id="createForm"><div class="form"><div><label>Plan</label><select id="plan"><option value="day">1 day</option><option value="week">1 week</option><option value="month">1 month</option><option value="year">1 year</option><option value="lifetime">Lifetime</option></select></div><div><label>Max devices</label><input id="max" type="number" min="1" max="10" value="1"></div><div><label>Assign to email (optional)</label><input id="ownerEmail" type="email" placeholder="customer@email.com"></div><div><label>Notes / order</label><input id="notes" placeholder="Order ID or note"></div></div><button class="btn primary" style="margin-top:16px">GENERATE LICENSE</button></form><div id="newKey"></div></section>
-  <section class="panel"><div class="row"><h2>All licenses</h2><div class="actions"><input id="licenseSearch" placeholder="Search key / email / plan / status / note" style="min-width:280px"><button class="btn" id="licenseSearchClear">Clear</button></div></div><div class="row" style="margin:12px 0;justify-content:space-between"><strong id="licensePageInfoTop" class="notice">Page 1</strong><div class="actions"><button class="btn" id="licensePrevTop">Previous</button><button class="btn" id="licenseNextTop">Next</button></div></div><div class="tablewrap"><table><thead><tr><th>Key prefix</th><th>Plan</th><th>Status</th><th>Owner</th><th>Expiry</th><th>Devices</th><th>Actions</th></tr></thead><tbody id="rows"><tr><td colspan="7">Loading…</td></tr></tbody></table></div><div class="row" style="margin-top:14px"><span id="licensePageInfo" class="notice"></span><div class="actions"><button class="btn" id="licensePrev">Previous</button><button class="btn" id="licenseNext">Next</button></div></div></section>
+  <section class="panel"><div class="row"><h2>All licenses</h2><div class="actions"><input id="licenseSearch" placeholder="Search key / email / plan / status / note" style="min-width:280px"><button class="btn" id="licenseSearchClear">Clear</button></div></div><div class="row" style="margin:12px 0;justify-content:space-between"><strong id="licensePageInfoTop" class="notice">Page 1</strong><div class="actions"><button class="btn" id="licensePrevTop">Previous</button><button class="btn" id="licenseNextTop">Next</button></div></div><div class="tablewrap"><table><thead><tr><th>Key prefix</th><th>Plan</th><th>Status</th><th>Owner</th><th>Expiry</th><th>Devices used</th><th>Actions</th></tr></thead><tbody id="rows"><tr><td colspan="7">Loading…</td></tr></tbody></table></div><div class="row" style="margin-top:14px"><span id="licensePageInfo" class="notice"></span><div class="actions"><button class="btn" id="licensePrev">Previous</button><button class="btn" id="licenseNext">Next</button></div></div></section>
 </section>
 <section class="page" id="page-orders">
   <div class="heading"><div><div class="eyebrow">PAYMENTS</div><h1>Customer <em>orders.</em></h1><p>Search and export the connected order records.</p></div></div><div class="notice" id="ordersNotice" aria-live="polite"></div>
@@ -152,7 +152,7 @@ const date=x=>{if(x.expires_at)return new Date(x.expires_at).toLocaleDateString(
 function msg(t,err=false,target='notice'){const e=document.getElementById(target);if(!e)return;e.textContent=t;e.className='notice'+(err?' error':'')}
 async function api(action,body={}){const r=await fetch(fn,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+session.access_token,'apikey':'sb_publishable_C1Mv75fwRb3bA9gx6JqN7w_2c2CyJvF'},body:JSON.stringify({action,...body})});let j=await r.json();if(!r.ok)throw Error(j.error||'Request failed');return j}
 async function init(){const x=await sb.auth.getSession();session=x.data.session;if(!session){location.href='account.html?next=admin';return}const u=session.user;const p=await sb.from('profiles').select('role,email').eq('id',u.id).single();if(p.data?.role!=='admin'){document.body.innerHTML='<div style="padding:50px;text-align:center">Admin access required. <a href="dashboard.html">Return to dashboard</a></div>';return}document.getElementById('adminEmail').textContent=u.email;await Promise.allSettled([refresh(),loadOrders(),loadStreamers(),loadFinanceSettings()]);setStripeRange("30");setSplitRange("30") }
-async function refresh(){try{licenses=[];let offset=0,count=0;do{const d=await api("list",{limit:100,offset});licenses.push(...(d.licenses||[]));count=d.count||0;offset+=d.limit||100;}while(offset<count);licensePage=1;render();msg("Loaded "+licenses.length+" licenses across all pages.")}catch(e){msg(e.message,true)}}
+async function refresh(){const target=document.getElementById("page-licenses")?.classList.contains("active")?"licenseNotice":"notice";try{licenses=[];let offset=0,count=0;do{const d=await api("list",{limit:100,offset});licenses.push(...(d.licenses||[]));count=d.count||0;offset+=d.limit||100;}while(offset<count);licensePage=1;render();msg("Loaded "+licenses.length+" licenses across all pages.",false,target)}catch(e){msg(e.message,true,target)}}
 function render(){
  const total=document.getElementById("total"),active=document.getElementById("active"),available=document.getElementById("available");
  total.textContent=licenses.length;active.textContent=licenses.filter(x=>statusOf(x)==="active").length;available.textContent=licenses.filter(x=>statusOf(x)==="available").length;
@@ -163,26 +163,79 @@ function render(){
  document.getElementById("rows").innerHTML=shown.map(x=>`<tr>
  <td class="key">${esc(x.key_prefix)}</td><td>${esc(x.plan)}</td>
  <td><span class="pill ${statusOf(x)==="active"?"":"warn"}">${esc(statusOf(x))}</span></td>
- <td>${esc(x.owner_email||x.owner_id||"Unassigned")}</td><td>${date(x)}</td><td>${esc(x.max_devices)}</td>
+ <td>${esc(x.owner_email||x.owner_id||"Unassigned")}</td><td>${date(x)}</td><td>${esc((Number(x.device_count)||0)+" / "+(Number(x.max_devices)||1))}</td>
  <td><div class="actions">
- <button class="btn" data-action="assign" data-id="${esc(x.id)}">Assign</button>
- <button class="btn" data-action="status" data-id="${esc(x.id)}" data-status="${statusOf(x)==="suspended"?"active":"suspended"}">${statusOf(x)==="suspended"?"Activate":"Suspend"}</button>
- <button class="btn" data-action="reset" data-id="${esc(x.id)}">Reset HWID</button>
- <button class="btn" data-action="history" data-id="${esc(x.id)}">History</button>
- <button class="btn" data-action="revoke" data-id="${esc(x.id)}" style="border-color:#8d334b;color:#ff9eb5">Revoke</button>
+ <button class="btn" data-action="assign" data-id="${esc(x.id)}" ${["suspended","revoked","expired"].includes(statusOf(x))?"disabled":""} title="Assign this license to a customer account">Assign</button>
+ <button class="btn" data-action="status" data-id="${esc(x.id)}" data-status="${statusOf(x)==="suspended"?"active":"suspended"}" ${["revoked","expired"].includes(statusOf(x))?"disabled":""} title="${statusOf(x)==="suspended"?"Reactivate this license":"Temporarily suspend this license"}">${statusOf(x)==="suspended"?"Activate":"Suspend"}</button>
+ <button class="btn" data-action="reset" data-id="${esc(x.id)}" ${["suspended","revoked","expired"].includes(statusOf(x))?"disabled":""} title="Release the device binding for this license">Reset HWID</button>
+ <button class="btn" data-action="history" data-id="${esc(x.id)}" title="View license and device history">History</button>
+ <button class="btn" data-action="revoke" data-id="${esc(x.id)}" ${statusOf(x)==="revoked"?"disabled":""} style="border-color:#8d334b;color:#ff9eb5" title="Permanently revoke this license">${statusOf(x)==="revoked"?"Revoked":"Revoke"}</button>
  </div></td></tr>`).join("")||'<tr><td colspan="7">No licenses found.</td></tr>';
  const pageText="Page "+licensePage+" of "+pages+" · Showing "+(filtered.length?((licensePage-1)*licensePageSize+1):0)+"–"+Math.min(licensePage*licensePageSize,filtered.length)+" of "+filtered.length+" matches · "+licenses.length+" total";
  document.getElementById("licensePageInfo").textContent=pageText;document.getElementById("licensePageInfoTop").textContent=pageText;
  ["licensePrev","licensePrevTop"].forEach(id=>document.getElementById(id).disabled=licensePage<=1);["licenseNext","licenseNextTop"].forEach(id=>document.getElementById(id).disabled=licensePage>=pages);
 }
-document.getElementById("rows").addEventListener("click",e=>{const b=e.target.closest("button[data-action]");if(!b)return;const id=b.dataset.id;switch(b.dataset.action){case "assign":assign(id);break;case "status":status(id,b.dataset.status);break;case "reset":reset(id);break;case "history":history(id);break;case "revoke":revoke(id);break;}});
-document.getElementById('createForm').onsubmit=async e=>{e.preventDefault();try{let owner=null;const email=document.getElementById('ownerEmail').value.trim();if(email){const q=await api('find_user',{email});if(!q.user)throw Error('No ROB CHEAT account found for that email. Ask the customer to register first.');owner=q.user.id}const d=await api('create',{plan:document.getElementById('plan').value,max_devices:Number(document.getElementById('max').value),owner_id:owner,notes:document.getElementById('notes').value});document.getElementById('newKey').innerHTML='<div class="notice">License generated. Copy this key now (it is shown only once): <strong class="key">'+esc(d.license_key)+'</strong> <button class="btn" onclick="navigator.clipboard.writeText(\''+d.license_key+'\')">Copy</button></div>';msg('License created');await refresh()}catch(e){msg(e.message,true)}};
-window.revoke=async id=>{if(!confirm("Permanently revoke this license? It will no longer activate."))return;try{const d=await api("revoke",{id});msg(d.vps_revoked?"License revoked in the panel and key server.":"License revoked in the panel; external key record was not found.");await refresh()}catch(e){msg(e.message,true)}};
-document.getElementById("licenseSearch").oninput=()=>{licensePage=1;render()};document.getElementById("licenseSearchClear").onclick=()=>{document.getElementById("licenseSearch").value="";licensePage=1;render()};document.getElementById("licensePrev").onclick=()=>{licensePage--;render()};document.getElementById("licenseNext").onclick=()=>{licensePage++;render()};document.getElementById("licensePrevTop").onclick=()=>{licensePage--;render()};document.getElementById("licenseNextTop").onclick=()=>{licensePage++;render()};
-window.assign=async id=>{const email=prompt('Customer email to assign this license to:');if(!email)return;try{const q=await api('find_user',{email:email.trim()});if(!q.user)throw Error('Account not found.');const result=await api('update',{id,owner_id:q.user.id});msg(result.key_regenerated?'License assigned. A compatible replacement key is now available in the member dashboard.':'License assigned and desktop key ownership synced.');await refresh()}catch(e){msg(e.message,true)}};
-window.status=async(id,status)=>{try{await api('update',{id,status});msg('Status updated');await refresh()}catch(e){msg(e.message,true)}};
-window.reset=async id=>{if(!confirm('Reset all HWID devices for this license?'))return;try{await api('reset_hwid',{id});msg('HWID reset complete');await refresh()}catch(e){msg(e.message,true)}};
-window.history=async id=>{try{const d=await api('activations',{id});alert((d.activations||[]).map(x=>x.event+' — '+new Date(x.created_at).toLocaleString()).join('\n')||'No history')}catch(e){msg(e.message,true)}};
+document.getElementById("rows").addEventListener("click",async e=>{const b=e.target.closest("button[data-action]");if(!b||b.disabled)return;const id=b.dataset.id;b.disabled=true;try{switch(b.dataset.action){case "assign":await assignLicense(id);break;case "status":await setLicenseStatus(id,b.dataset.status);break;case "reset":await resetLicenseHwid(id);break;case "history":await showLicenseHistory(id);break;case "revoke":await revokeLicense(id);break;}}finally{if(b.isConnected)b.disabled=false;}});
+document.getElementById('createForm').onsubmit=async e=>{e.preventDefault();try{let owner=null;const email=document.getElementById('ownerEmail').value.trim();if(email){const q=await api('find_user',{email});if(!q.user)throw Error('No ROB CHEAT account found for that email. Ask the customer to register first.');owner=q.user.id}const d=await api('create',{plan:document.getElementById('plan').value,max_devices:Number(document.getElementById('max').value),owner_id:owner,notes:document.getElementById('notes').value});document.getElementById('newKey').innerHTML='<div class="notice">License generated. Copy this key now (it is shown only once): <strong class="key">'+esc(d.license_key)+'</strong> <button class="btn" onclick="navigator.clipboard.writeText(\''+d.license_key+'\')">Copy</button></div>';msg('License created',false,'licenseNotice');await refresh()}catch(e){msg(e.message,true,'licenseNotice')}};
+async function revokeLicense(id){
+ if(!confirm("Permanently revoke this license? Its desktop key will be disabled and this action cannot be undone."))return;
+ try{const d=await api("revoke",{id});msg(d.already_revoked?"This license was already revoked.":d.key_revoked?"License permanently revoked and desktop key disabled.":"License revoked.",false,"licenseNotice");await refresh()}
+ catch(e){msg(e.message,true,"licenseNotice")}
+}
+async function assignLicense(id){
+ const email=prompt("Customer email to assign this license to:");
+ if(email===null)return;
+ if(!email.trim()){msg("Enter a customer email address.",true,"licenseNotice");return}
+ try{
+  const q=await api("find_user",{email:email.trim()});
+  if(!q.user)throw Error("Account not found.");
+  const result=await api("update",{id,owner_id:q.user.id});
+  msg(result.key_regenerated?"License assigned. A replacement key is now available in the member dashboard.":"License assigned and desktop key ownership synced.",false,"licenseNotice");
+  await refresh();
+ }catch(e){msg(e.message,true,"licenseNotice")}
+}
+async function setLicenseStatus(id,nextStatus){
+ if(nextStatus==="suspended"&&!confirm("Suspend this license? The desktop key will be blocked until you activate it again. The existing HWID binding will be kept."))return;
+ try{
+  const result=await api("set_status",{id,status:nextStatus});
+  msg(nextStatus==="suspended"?"License suspended. The desktop key is now blocked; its HWID binding is retained.":(result.status==="available"?"License reactivated and restored to Available.":"License reactivated and restored to its previous status."),false,"licenseNotice");
+  await refresh();
+ }catch(e){msg(e.message,true,"licenseNotice")}
+}
+async function resetLicenseHwid(id){
+ if(!confirm("Release the registered HWID so the same license key can be activated on a new PC?"))return;
+ try{
+  const result=await api("reset_hwid",{id});
+  const changed=Boolean(result.legacy_hwid_cleared)||Number(result.released_device_count)>0;
+  msg(changed?"HWID released. The same key can now be activated with a new HWID.":"No active HWID binding was found; this key was already free.",false,"licenseNotice");
+  await refresh();
+ }catch(e){msg(e.message,true,"licenseNotice")}
+}
+async function showLicenseHistory(id){
+ try{
+  const data=await api("activations",{id});
+  const lines=["LICENSE HISTORY"];
+  const legacy=data.legacy;
+  const epoch=value=>value?new Date(Number(value)*1000).toLocaleString():"Not recorded";
+  if(legacy){
+   lines.push("HWID binding: "+(legacy.hwid_bound?"Bound":"Free"));
+   lines.push("Desktop key: "+(legacy.revoked?"Revoked":"Enabled"));
+   lines.push("Issued: "+epoch(legacy.issued_at));
+   lines.push("Activated: "+epoch(legacy.activated_at));
+   lines.push("Last seen: "+epoch(legacy.last_seen));
+  }else lines.push("Legacy desktop key record: not found");
+  if((data.devices||[]).length){
+   lines.push("","REGISTERED DEVICE RECORDS");
+   (data.devices||[]).forEach(d=>lines.push((d.device_label||"Device")+" · first seen "+(d.first_seen_at?new Date(d.first_seen_at).toLocaleString():"—")+" · last seen "+(d.last_seen_at?new Date(d.last_seen_at).toLocaleString():"—")+" · "+(d.revoked_at?"released":"active")));
+  }
+  if((data.activations||[]).length){
+   lines.push("","RECORDED EVENTS");
+   (data.activations||[]).forEach(x=>lines.push(x.event+" — "+new Date(x.created_at).toLocaleString()+(x.metadata?.admin_hwid_reset?" · admin HWID reset":"")));
+  }else lines.push("","No detailed admin or activation events have been recorded yet.");
+  if(legacy)lines.push("","Note: older key records store the latest activation and last-seen timestamps, not a complete log of every session.");
+  alert(lines.join("\n"));
+ }catch(e){msg(e.message,true,"licenseNotice")}
+}
 async function loadOrders(){const notice=document.getElementById('ordersNotice');if(notice){notice.textContent='';notice.className='notice'}try{const d=await api('orders');orders=d.orders||[];renderOrders()}catch(e){msg('Could not load orders: '+e.message,true,'ordersNotice')}}let stripeData=null,stripeCurrentRange="30";
 const localISODate=d=>{const x=new Date(d.getTime()-d.getTimezoneOffset()*60000);return x.toISOString().slice(0,10)};
 function setStripeRange(range){stripeCurrentRange=String(range);const now=new Date(),to=localISODate(now);document.getElementById("stripeTo").value=to;if(range==="all"){document.getElementById("stripeFrom").value="";loadStripeAnalytics(true);return}const days=range==="today"?1:Number(range);const from=new Date(now);from.setDate(from.getDate()-(days-1));document.getElementById("stripeFrom").value=localISODate(from);loadStripeAnalytics(false)}
