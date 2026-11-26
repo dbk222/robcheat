@@ -29,3 +29,11 @@ Changes in `redesign/implementation-phase-1` are implementation work only. Revie
 
 ## Legal pages
 The Terms and Privacy pages retain the source wording and unresolved business, provider and retention placeholders. Complete and review those details before relying on the pages as final legal notices.
+
+
+## ROB CHEAT Finance
+- `finance.html` — private, mobile-friendly finance ledger for the ROB CHEAT partners.
+- Access uses the existing Supabase Auth accounts and the separate `finance_workspaces`, `finance_members`, and `finance_entries` tables. Finance rows are isolated from customer licence data with Row Level Security.
+- Revenue, refunds, processing fees, business expenses and partner withdrawals are entered manually in RON. There are no Stripe, Paysafe, PayPal or Revolut API integrations.
+- Distributable profit is calculated as collected revenue minus refunds, payment fees and business expenses, then allocated 50/50. Withdrawals reduce only the selected partner's remaining entitlement.
+- Do not treat a partner's profit entitlement as the cash balance held by a payment provider or bank.
