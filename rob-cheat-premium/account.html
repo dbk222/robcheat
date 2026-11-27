@@ -60,8 +60,8 @@ const SUPABASE_KEY='sb_publishable_C1Mv75fwRb3bA9gx6JqN7w_2c2CyJvF';
 const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 const params=new URLSearchParams(location.search);
 const messageText={
-  en:{missing:'Please complete the required fields.',badEmail:'Enter a valid email address.',badUsername:'Username must be 3–24 characters using letters, numbers, _ or -.',shortPassword:'Password must be at least 8 characters.',mismatch:'Passwords do not match.',signup:'Account created. Check your email to confirm your account.',signupSession:'Account created. Redirecting to your dashboard…',login:'Signed in. Opening your account…',reset:'Password reset email sent. Check your inbox.',update:'Password updated. Redirecting…',generic:'Something went wrong. Please try again.'},
-  ro:{missing:'Completează câmpurile obligatorii.',badEmail:'Introdu o adresă de e-mail validă.',badUsername:'Numele trebuie să aibă 3–24 caractere: litere, cifre, _ sau -.',shortPassword:'Parola trebuie să aibă minimum 8 caractere.',mismatch:'Parolele nu coincid.',signup:'Cont creat. Verifică e-mailul pentru confirmarea contului.',signupSession:'Cont creat. Te redirecționăm către dashboard…',login:'Autentificare reușită. Deschidem contul…',reset:'Am trimis e-mailul pentru resetarea parolei.',update:'Parola a fost actualizată. Te redirecționăm…',generic:'A apărut o eroare. Încearcă din nou.'}
+  en:{missing:'Please complete the required fields.',badEmail:'Enter a valid email address.',badUsername:'Username must be 3–24 characters using letters, numbers, _ or -.',shortPassword:'Password must be at least 8 characters.',mismatch:'Passwords do not match.',usernameTaken:'Username is already in use. Please choose another one.',usernameCheckFailed:'Could not verify username availability. Please try again.',signup:'Account created. Check your email to confirm your account.',signupSession:'Account created. Redirecting to your dashboard…',login:'Signed in. Opening your account…',reset:'Password reset email sent. Check your inbox.',update:'Password updated. Redirecting…',generic:'Something went wrong. Please try again.'},
+  ro:{missing:'Completează câmpurile obligatorii.',badEmail:'Introdu o adresă de e-mail validă.',badUsername:'Numele trebuie să aibă 3–24 caractere: litere, cifre, _ sau -.',shortPassword:'Parola trebuie să aibă minimum 8 caractere.',mismatch:'Parolele nu coincid.',usernameTaken:'Numele de utilizator este deja folosit. Alege altul.',usernameCheckFailed:'Nu am putut verifica disponibilitatea numelui. Încearcă din nou.',signup:'Cont creat. Verifică e-mailul pentru confirmarea contului.',signupSession:'Cont creat. Te redirecționăm către dashboard…',login:'Autentificare reușită. Deschidem contul…',reset:'Am trimis e-mailul pentru resetarea parolei.',update:'Parola a fost actualizată. Te redirecționăm…',generic:'A apărut o eroare. Încearcă din nou.'}
 };
 const msg=k=>messageText[language]?.[k]||messageText.en[k];
 function redirectAfterAuth(user){
@@ -90,10 +90,17 @@ $('authForm').addEventListener('submit',async e=>{
       if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))throw Error(msg('badEmail'));
       if(password.length<8)throw Error(msg('shortPassword'));
       if(password!==$('confirm').value)throw Error(msg('mismatch'));
+      const availability=await sb.rpc('is_username_available',{p_username:name});
+      if(availability.error)throw Error(msg('usernameCheckFailed'));
+      if(availability.data!==true)throw Error(msg('usernameTaken'));
       result=await sb.auth.signUp({email,password,options:{data:{display_name:name,username:name},emailRedirectTo:location.origin+location.pathname.replace(/[^/]*$/,'account.html')}});
       if(result.error){
         const low=(result.error.message||'').toLowerCase();
-        if(low.includes('profiles_display_name_lower_unique')||low.includes('username is taken')||low.includes('duplicate key'))throw Error(language==='ro'?'Numele de utilizator este deja folosit. Alege altul.':'Username is taken. Please choose another one.');
+        if(low.includes('profiles_display_name_lower_unique')||low.includes('username is taken')||low.includes('duplicate key'))throw Error(msg('usernameTaken'));
+        if(low.includes('database error saving new user')){
+          const retryCheck=await sb.rpc('is_username_available',{p_username:name});
+          if(!retryCheck.error&&retryCheck.data===false)throw Error(msg('usernameTaken'));
+        }
         throw result.error;
       }
       if(result.data.user&&!result.data.session&&Array.isArray(result.data.user.identities)&&result.data.user.identities.length===0)throw Error(language==='ro'?'Adresa de e-mail este deja înregistrată.':'Email address already registered.');

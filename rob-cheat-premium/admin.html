@@ -144,7 +144,7 @@ if(location.hash){const p=location.hash.slice(1);if(document.getElementById('pag
 
 
 const sb=supabase.createClient('https://rzbvtzeqrcfutfafaamm.supabase.co','sb_publishable_C1Mv75fwRb3bA9gx6JqN7w_2c2CyJvF');
-let session,licenses=[],orders=[],licensePage=1,orderPage=1,stripeChartDays=30,licenseDataLoading=false,licenseExpectedCount=0;const licensePageSize=10,orderPageSize=10;const fn='/api/admin-licenses';
+let session,licenses=[],orders=[],licensePage=1,orderPage=1,stripeChartDays=30;const licensePageSize=10,orderPageSize=10;const fn='/api/admin-licenses';
 const stripeFn='/api/stripe-admin-analytics';
 const statusOf=x=>x.effective_status||x.status;
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -152,37 +152,12 @@ const date=x=>{if(x.expires_at)return new Date(x.expires_at).toLocaleDateString(
 function msg(t,err=false,target='notice'){const e=document.getElementById(target);if(!e)return;e.textContent=t;e.className='notice'+(err?' error':'')}
 async function api(action,body={}){const r=await fetch(fn,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+session.access_token,'apikey':'sb_publishable_C1Mv75fwRb3bA9gx6JqN7w_2c2CyJvF'},body:JSON.stringify({action,...body})});let j=await r.json();if(!r.ok)throw Error(j.error||'Request failed');return j}
 async function init(){const x=await sb.auth.getSession();session=x.data.session;if(!session){location.href='account.html?next=admin';return}const u=session.user;const p=await sb.from('profiles').select('role,email').eq('id',u.id).single();if(p.data?.role!=='admin'){document.body.innerHTML='<div style="padding:50px;text-align:center">Admin access required. <a href="dashboard.html">Return to dashboard</a></div>';return}document.getElementById('adminEmail').textContent=u.email;await Promise.allSettled([refresh(),loadOrders(),loadStreamers(),loadFinanceSettings()]);setStripeRange("30");setSplitRange("30") }
-async function refresh(showLoadedMessage=true){
- const target=document.getElementById("page-licenses")?.classList.contains("active")?"licenseNotice":"notice";
- licenseDataLoading=true;licenses=[];licensePage=1;licenseExpectedCount=0;
- document.getElementById("rows").innerHTML='<tr><td colspan="7">Loading licenses…</td></tr>';
- render();
- try{
-  const first=await api("list",{limit:100,offset:0});
-  licenses=first.licenses||[];
-  licenseExpectedCount=Number(first.count)||licenses.length;
-  render();
-  if(showLoadedMessage)msg("Loaded first "+licenses.length+" of "+licenseExpectedCount+" licenses. Loading remaining records…",false,target);
-  const pageSize=250,offsets=[];
-  for(let offset=100;offset<licenseExpectedCount;offset+=pageSize)offsets.push(offset);
-  const batches=await Promise.all(offsets.map(offset=>api("list",{limit:pageSize,offset})));
-  for(const batch of batches)licenses.push(...(batch.licenses||[]));
-  licensePage=1;
-  render();
-  if(showLoadedMessage)msg("Loaded "+licenses.length+" licenses across all pages.",false,target);
- }catch(e){
-  render();
-  msg("Could not load all licenses ("+licenses.length+" of "+licenseExpectedCount+"): "+(e.message||"Unknown error"),true,target);
- }finally{
-  licenseDataLoading=false;
-  render();
- }
-}
+async function refresh(showLoadedMessage=true){const target=document.getElementById("page-licenses")?.classList.contains("active")?"licenseNotice":"notice";try{licenses=[];let offset=0,count=0;do{const d=await api("list",{limit:100,offset});licenses.push(...(d.licenses||[]));count=d.count||0;offset+=d.limit||100;}while(offset<count);licensePage=1;render();if(showLoadedMessage)msg("Loaded "+licenses.length+" licenses across all pages.",false,target)}catch(e){msg(e.message,true,target)}}
 function render(){
  const total=document.getElementById("total"),active=document.getElementById("active"),available=document.getElementById("available");
  total.textContent=licenses.length;active.textContent=licenses.filter(x=>statusOf(x)==="active").length;available.textContent=licenses.filter(x=>statusOf(x)==="available").length;
  const q=(document.getElementById("licenseSearch")?.value||"").trim().toLowerCase();
- const filtered=licenses.filter(x=>[x.license_key,x.key_prefix,x.plan,statusOf(x),x.owner_email,x.owner_id,x.notes,x.id].map(v=>String(v??"")).join(" ").toLowerCase().includes(q));
+ const filtered=licenses.filter(x=>[x.key_prefix,x.plan,statusOf(x),x.owner_email,x.owner_id,x.notes].join(" ").toLowerCase().includes(q));
  const pages=Math.max(1,Math.ceil(filtered.length/licensePageSize));licensePage=Math.min(Math.max(1,licensePage),pages);
  const shown=filtered.slice((licensePage-1)*licensePageSize,licensePage*licensePageSize);
  document.getElementById("rows").innerHTML=shown.map(x=>`<tr>
@@ -196,18 +171,10 @@ function render(){
  <button class="btn" data-action="history" data-id="${esc(x.id)}" title="View license and device history">History</button>
  <button class="btn" data-action="revoke" data-id="${esc(x.id)}" ${statusOf(x)==="revoked"?"disabled":""} style="border-color:#8d334b;color:#ff9eb5" title="Permanently revoke this license">${statusOf(x)==="revoked"?"Revoked":"Revoke"}</button>
  </div></td></tr>`).join("")||'<tr><td colspan="7">No licenses found.</td></tr>';
- const loadingSuffix=licenseDataLoading&&licenseExpectedCount>licenses.length?" · Loading "+(licenseExpectedCount-licenses.length)+" more": "";
- const pageText="Page "+licensePage+" of "+pages+" · Showing "+(filtered.length?((licensePage-1)*licensePageSize+1):0)+"–"+Math.min(licensePage*licensePageSize,filtered.length)+" of "+filtered.length+" matches · "+licenses.length+" loaded"+loadingSuffix;
+ const pageText="Page "+licensePage+" of "+pages+" · Showing "+(filtered.length?((licensePage-1)*licensePageSize+1):0)+"–"+Math.min(licensePage*licensePageSize,filtered.length)+" of "+filtered.length+" matches · "+licenses.length+" total";
  document.getElementById("licensePageInfo").textContent=pageText;document.getElementById("licensePageInfoTop").textContent=pageText;
- document.getElementById("licenseSearch").disabled=licenseDataLoading;document.getElementById("licenseSearchClear").disabled=licenseDataLoading;
- ["licensePrev","licensePrevTop"].forEach(id=>document.getElementById(id).disabled=licenseDataLoading||licensePage<=1);["licenseNext","licenseNextTop"].forEach(id=>document.getElementById(id).disabled=licenseDataLoading||licensePage>=pages);
+ ["licensePrev","licensePrevTop"].forEach(id=>document.getElementById(id).disabled=licensePage<=1);["licenseNext","licenseNextTop"].forEach(id=>document.getElementById(id).disabled=licensePage>=pages);
 }
-const licenseSearchInput=document.getElementById("licenseSearch");
-licenseSearchInput.addEventListener("input",()=>{licensePage=1;render()});
-document.getElementById("licenseSearchClear").addEventListener("click",()=>{licenseSearchInput.value="";licensePage=1;render();licenseSearchInput.focus()});
-function moveLicensePage(delta){licensePage+=delta;render()}
-["licensePrev","licensePrevTop"].forEach(id=>document.getElementById(id).addEventListener("click",()=>moveLicensePage(-1)));
-["licenseNext","licenseNextTop"].forEach(id=>document.getElementById(id).addEventListener("click",()=>moveLicensePage(1)));
 document.getElementById("rows").addEventListener("click",async e=>{const b=e.target.closest("button[data-action]");if(!b||b.disabled)return;const id=b.dataset.id;b.disabled=true;try{switch(b.dataset.action){case "assign":await assignLicense(id);break;case "status":await setLicenseStatus(id,b.dataset.status);break;case "reset":await resetLicenseHwid(id);break;case "history":await showLicenseHistory(id);break;case "revoke":await revokeLicense(id);break;}}finally{if(b.isConnected)b.disabled=false;}});
 document.getElementById('createForm').onsubmit=async e=>{e.preventDefault();try{let owner=null;const email=document.getElementById('ownerEmail').value.trim();if(email){const q=await api('find_user',{email});if(!q.user)throw Error('No ROB CHEAT account found for that email. Ask the customer to register first.');owner=q.user.id}const d=await api('create',{plan:document.getElementById('plan').value,max_devices:Number(document.getElementById('max').value),owner_id:owner,notes:document.getElementById('notes').value});document.getElementById('newKey').innerHTML='<div class="notice">License generated. Copy this key now (it is shown only once): <strong class="key">'+esc(d.license_key)+'</strong> <button class="btn" onclick="navigator.clipboard.writeText(\''+d.license_key+'\')">Copy</button></div>';msg('License created',false,'licenseNotice');await refresh(false)}catch(e){msg(e.message,true,'licenseNotice')}};
 async function revokeLicense(id){
