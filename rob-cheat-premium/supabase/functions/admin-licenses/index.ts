@@ -87,7 +87,7 @@ Deno.serve(async req=>{
   return json({license:data,license_key:keyValue,legacy_key_registered:true},200,origin);
  }
  if(action==="list"){
-  const limit=Math.min(100,Math.max(1,Number(body.limit)||50));
+  const limit=Math.min(250,Math.max(1,Number(body.limit)||50));
   const offset=Math.max(0,Number(body.offset)||0);
   const {data,error,count}=await admin.from("licenses").select("id,key_prefix,license_key,plan,status,owner_id,expires_at,max_devices,notes,created_at,updated_at",{count:"exact"}).order("created_at",{ascending:false}).range(offset,offset+limit-1);
   if(error)return json({error:"List failed",details:error.message},500,origin);
